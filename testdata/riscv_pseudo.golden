@@ -1,0 +1,30 @@
+.text
+.globl pseudo
+pseudo:
+	nop
+	li   a0, 42
+	la   a1, symbol
+	lla  a2, symbol
+	lga  a3, global
+	lb   a4, symbol
+	lh   a5, symbol
+	lw   a6, symbol
+	ld   a7, symbol
+	sb   a4, symbol, t0
+	sh   a5, symbol, t0
+	sw   a6, symbol, t0
+	sd   a7, symbol, t0
+	call target
+	tail target
+	mv     a0, a1
+	not    a0, a0
+	neg    a0, a0
+	sext.w a0, a0
+	zext.w a0, a0
+	fmv.s  ft0, ft1
+	frcsr  a0
+	fscsr  a0
+	jr     ra
+
+target:
+	ret

@@ -1,0 +1,14 @@
+.option push
+.option rvc
+.option norvc
+.option pic
+.option nopic
+.option relax
+.option norelax
+.option arch, +c, -v, +zba
+.option pop
+.attribute arch, "rv64imafdc_zicsr_zifencei"
+.attribute unaligned_access, 0
+.attribute stack_align, 16
+.attribute 4, "rv64gc"
+.attribute 5, 1

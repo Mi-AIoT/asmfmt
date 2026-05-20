@@ -1,0 +1,47 @@
+.text
+.globl base
+base:
+  lui a0, 0x1
+  auipc a1, 0
+  addi a0, a0, -1
+  slti a1, a0, 7
+  xori a2, a1, -1
+  ori a3, a2, 3
+  andi a4, a3, 3
+  slli a5, a4, 2
+  srli a6, a5, 1
+  srai a7, a6, 1
+  add t0, t1, t2
+  sub t0, t0, t1
+  sll t1, t1, t2
+  slt t2, t1, t0
+  sltu t3, t2, t1
+  xor t4, t3, t2
+  srl t5, t4, t3
+  sra t6, t5, t4
+  or ra, t6, t5
+  and sp, ra, t6
+  lb a0, 0(sp)
+  lh a1, 2(sp)
+  lw a2, 4(sp)
+  ld a3, 8(sp)
+  lbu a4, 1(sp)
+  lhu a5, 2(sp)
+  lwu a6, 4(sp)
+  sb a0, 0(sp)
+  sh a1, 2(sp)
+  sw a2, 4(sp)
+  sd a3, 8(sp)
+  beq a0, a1, done
+  bne a0, a1, done
+  blt a0, a1, done
+  bge a0, a1, done
+  bltu a0, a1, done
+  bgeu a0, a1, done
+  jal ra, done
+  jalr zero, 0(ra)
+  fence iorw, iorw
+  fence.i
+  ecall
+done:
+  ret

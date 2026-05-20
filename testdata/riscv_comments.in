@@ -1,0 +1,14 @@
+# file comment
+#define REG a0
+#include "defs.h"
+.text
+.globl comments
+comments:
+  addi a0, a0, 1 # trailing gas comment
+  addi a1, a1, 1#not-a-comment
+  .string "hash # slash // block /* not comments */"
+  .byte '#', '/', '*'
+  addi a2, a2, 2 /* inline block */ # after block
+  add r0, r1, #1
+  // slash comment
+  ret # done

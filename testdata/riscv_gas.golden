@@ -1,0 +1,24 @@
+# file level comment
+#define REG a0
+.text
+.globl foo
+.type foo, @function
+.attribute arch, "rv64imafdc"
+.macro load_addr reg, sym
+	lui  \reg, %hi(\sym)
+	addi \reg, \reg, %lo(\sym) # macro relocation
+.endm
+foo:
+	addi a0, a0, 1        # increment
+	lui  a1, %hi(msg + 1)
+
+1:
+	auipc a0, %pcrel_hi(msg + 1)
+	ld    a0, %pcrel_lo(1b)(a0)
+.option push
+.option arch, +c # Alternative of .option rvc
+.option pop
+	.insn r 0x33, 0, 0, a0, a1, a2
+.string "not # a comment"
+	ret # done
+.size foo, .-foo

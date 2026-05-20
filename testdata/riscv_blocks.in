@@ -1,0 +1,26 @@
+.macro load_addr reg, sym
+lui \reg, %hi(\sym)
+.ifc \reg,a0
+addi \reg, \reg, %lo(\sym)
+.else
+addi \reg, \reg, 0
+.endif
+.endm
+.irp reg,a0,a1
+  addi \reg, \reg, 1
+.endr
+.irpc ch,abc
+  .byte '\ch'
+.endr
+.rept 2
+  nop
+.endr
+.if 1
+  addi a0, a0, 1
+.elseif 0
+  addi a0, a0, 2
+.else
+  addi a0, a0, 3
+.endif
+.altmacro
+.noaltmacro

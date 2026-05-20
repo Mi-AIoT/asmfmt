@@ -1,0 +1,27 @@
+.text
+.globl ext
+ext:
+  mul a0, a1, a2
+  div a0, a0, a1
+  remu a0, a0, a1
+  lr.w t0, (a0)
+  sc.w t1, t2, (a0)
+  amoadd.d t0, t1, (a0)
+  flw ft0, 0(a0)
+  fsw ft0, 0(a0)
+  fadd.s ft0, ft1, ft2, rne
+  fsub.d ft0, ft1, ft2
+  fcvt.d.w ft0, a0
+  fcvt.w.d a0, ft0, rtz
+  csrr a0, mstatus
+  csrw mtvec, a0
+  csrrs a0, cycle, zero
+  c.addi a0, 1
+  c.lw a1, 0(a0)
+  c.sw a1, 0(a0)
+  vsetvli t0, a0, e32, m1, ta, ma
+  vle32.v v0, (a0), v0.t
+  vadd.vv v8, v9, v10, v0.t
+  vlseg2e32.v v8, (a0)
+  vsseg2e32.v v8, (a0)
+  mret

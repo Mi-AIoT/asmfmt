@@ -142,3 +142,82 @@ func TestZeroByteFile(t *testing.T) {
 		return
 	}
 }
+
+func TestFindLineComment(t *testing.T) {
+	tests := []struct {
+		line string
+		pos  int
+		mark string
+	}{
+		{`addi a0, a0, 1 # increment`, 15, "#"},
+		{`addi a0, a0, 1#not-comment`, -1, ""},
+		{`add r0, r1, #1`, -1, ""},
+		{`.string "not # a comment" # comment`, 26, "#"},
+		{`.byte '#' // slash comment`, 10, "//"},
+		{`addi a0, a0, 1 /* # not comment */ # comment`, 35, "#"},
+	}
+	for _, tt := range tests {
+		pos, mark := findLineComment(tt.line)
+		if pos != tt.pos || mark != tt.mark {
+			t.Fatalf("findLineComment(%q) = %d, %q; want %d, %q", tt.line, pos, mark, tt.pos, tt.mark)
+		}
+	}
+}
+
+func TestGasParamSplitting(t *testing.T) {
+	tests := []struct {
+		line   string
+		params []string
+	}{
+		{`.section .foo,"ax",@progbits`, []string{".foo", `"ax"`, "@progbits"}},
+		{`ld a0, %pcrel_lo(1b)(a0)`, []string{"a0", "%pcrel_lo(1b)(a0)"}},
+		{`.insn r 0x33, 0, 0, a0, a1, a2`, []string{"r 0x33", "0", "0", "a0", "a1", "a2"}},
+		{`.macro load reg:req, values:vararg`, []string{"load reg:req", "values:vararg"}},
+	}
+	for _, tt := range tests {
+		st := newStatement(tt.line, nil)
+		if st == nil {
+			t.Fatalf("newStatement(%q) = nil", tt.line)
+		}
+		if strings.Join(st.params, "|") != strings.Join(tt.params, "|") {
+			t.Fatalf("newStatement(%q).params = %#v; want %#v", tt.line, st.params, tt.params)
+		}
+	}
+}
+
+func TestSplitStatements(t *testing.T) {
+	got := splitStatements(`addi a0, a0, 1; ret # done`)
+	want := []string{`addi a0, a0, 1`, `ret # done`}
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("splitStatements = %#v; want %#v", got, want)
+	}
+	if shouldSplitSemicolonStatements(`#define X a; b \`) {
+		t.Fatal("continued macro should not use semicolon splitting")
+	}
+}
+
+func TestGasBlockIndentation(t *testing.T) {
+	input := `.macro wrap reg
+.if \reg
+addi a0, a0, 1
+.else
+ret
+.endif
+.endm
+`
+	want := `.macro wrap reg
+	.if \reg
+		addi a0, a0, 1
+	.else
+		ret
+	.endif
+.endm
+`
+	got, err := Format(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Fatalf("Format block indentation:\n%s", got)
+	}
+}

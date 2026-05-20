@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 // Format the input and return the formatted data.
@@ -42,6 +43,7 @@ type fstate struct {
 	lastLabel     bool
 	anyContents   bool
 	lastContinued bool // Last line continued
+	gasBlock      int
 	queued        []statement
 	comments      []string
 	defines       map[string]struct{}
@@ -51,6 +53,7 @@ type statement struct {
 	instruction string
 	params      []string // Parameters
 	comment     string   // Without slashes
+	commentMark string   // Line comment marker.
 	function    bool     // Probably define call
 	continued   bool     // Multiline statement, continues on next line
 	contComment bool     // Multiline statement, comment only
@@ -105,8 +108,8 @@ func (f *fstate) addLine(b []byte) error {
 	}
 	s = strings.TrimSpace(s)
 
-	// Comment is the the only line content.
-	if strings.HasPrefix(s, "//") {
+	// Comment is the only line content.
+	if strings.HasPrefix(s, "//") || (strings.HasPrefix(s, "#") && !isPreProcessorInstruction(strings.Fields(s)[0])) {
 		// Non-comment content is now added.
 		defer func() {
 			f.anyContents = true
@@ -114,7 +117,11 @@ func (f *fstate) addLine(b []byte) error {
 			f.lastStar = false
 		}()
 
-		s = strings.TrimPrefix(s, "//")
+		mark := "//"
+		if strings.HasPrefix(s, "#") {
+			mark = "#"
+		}
+		s = strings.TrimPrefix(s, mark)
 		if len(f.queued) > 0 {
 			f.flush()
 		}
@@ -127,13 +134,13 @@ func (f *fstate) addLine(b []byte) error {
 		// is a whitespace
 		ts := strings.TrimSpace(s)
 		var q string
-		if (ts != s && len(ts) > 0) || (len(s) > 0 && strings.ContainsAny(string(s[0]), `+/`)) || (len(s) >= 8 && s[:8] == "go:build") {
-			q = fmt.Sprint("//" + s)
+		if (ts != s && len(ts) > 0) || (len(s) > 0 && strings.ContainsAny(string(s[0]), `+/`)) || (mark == "//" && len(s) >= 8 && s[:8] == "go:build") {
+			q = fmt.Sprint(mark + s)
 		} else if len(ts) > 0 {
 			// Insert a space before the comment
-			q = fmt.Sprint("// " + s)
+			q = fmt.Sprint(mark + " " + s)
 		} else {
-			q = fmt.Sprint("//")
+			q = fmt.Sprint(mark)
 		}
 		f.comments = append(f.comments, q)
 		f.lastComment = true
@@ -141,8 +148,7 @@ func (f *fstate) addLine(b []byte) error {
 	}
 
 	// Handle end-of blockcomments.
-	if strings.Contains(s, "/*") && !strings.HasSuffix(s, `\`) {
-		starts := strings.Index(s, "/*")
+	if starts := findBlockCommentStart(s); starts >= 0 && !strings.HasSuffix(s, `\`) {
 		ends := strings.Index(s, "*/")
 		lineComment := strings.Index(s, "//")
 		if lineComment >= 0 {
@@ -169,7 +175,7 @@ func (f *fstate) addLine(b []byte) error {
 			// Add items before the comment section as a line.
 			if ends > starts && ends >= len(s)-2 {
 				comm := strings.TrimSpace(s[starts+2 : ends])
-				return f.addLine([]byte(pre + " //" + comm))
+				return f.addLine([]byte(pre + " // " + comm))
 			}
 			err := f.addLine([]byte(pre))
 			if err != nil {
@@ -222,6 +228,18 @@ exitcomm:
 		return f.out.WriteByte('\n')
 	}
 
+	if shouldSplitSemicolonStatements(s) {
+		parts := splitStatements(s)
+		if len(parts) > 1 {
+			for _, part := range parts {
+				if err := f.addLine([]byte(part)); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}
+
 	// Non-comment content is now added.
 	defer func() {
 		f.anyContents = true
@@ -250,21 +268,49 @@ exitcomm:
 		defer f.addLine([]byte(s[idx+1:]))
 	}
 
+	if st.isGasBlockMiddle() || st.isGasBlockEnd() {
+		f.flush()
+		if f.gasBlock > 0 {
+			f.gasBlock--
+		}
+		if f.indentation > f.gasBlock {
+			f.indentation = f.gasBlock
+		}
+	}
+
 	// Should this line be at level 0?
 	if st.level0() && !(st.continued && f.lastContinued) {
 		if st.isTEXT() && len(f.queued) == 0 && len(f.comments) > 0 {
 			f.indentation = 0
 		}
+		prevIndentation := f.indentation
 		f.flush()
+		if st.isGasZeroDirective() {
+			f.indentation = 0
+		}
 
-		// Add newline before jump target.
-		f.newLine()
+		// Add newline before jump targets, but not before GAS directives
+		// used inside an instruction stream.
+		if !st.isGasDirective() {
+			f.newLine()
+		}
 
-		f.indentation = 0
+		if !st.isGasDirective() || st.isGasZeroDirective() {
+			f.indentation = 0
+		}
 		f.queued = append(f.queued, *st)
 		f.flush()
 
-		if !st.isPreProcessor() && !st.isGlobal() {
+		if st.isGasBlockStart() || st.isGasBlockMiddle() {
+			f.gasBlock++
+			f.indentation = f.gasBlock
+		} else if st.isGasDirective() {
+			if st.isGasZeroDirective() {
+				f.indentation = prevIndentation
+			} else {
+				f.indentation = f.gasBlock
+			}
+		} else if !st.isPreProcessor() && !st.isGlobal() {
 			f.indentation = 1
 		}
 		f.lastLabel = true
@@ -278,8 +324,11 @@ exitcomm:
 	if st.isTerminator() || (f.lastContinued && !st.continued) {
 		// Terminators should always be at level 1
 		f.indentation = 1
+		if f.gasBlock > f.indentation {
+			f.indentation = f.gasBlock
+		}
 		f.flush()
-		f.indentation = 0
+		f.indentation = f.gasBlock
 	} else if st.isCommand() {
 		// handles cases where a JMP/RET isn't a terminator
 		f.indentation = 1
@@ -324,28 +373,24 @@ func newStatement(s string, defs map[string]struct{}) *statement {
 	s = strings.TrimSpace(s)
 	st := statement{}
 
-	// Fix where a comment start if any
-	// We need to make sure that the comment isn't embedded in a string literal
-	startcom := strings.Index(s, "//")
-	startstr := strings.Index(s, "\"")
-	for endstr := 0; startcom > startstr && startstr > endstr; {
-		// This does not check for any escaping (i.e. "\"")
-		endstr = startstr + 1 + strings.Index(s[startstr+1:], "\"")
-		startcom = endstr + strings.Index(s[endstr:], "//")
-		if startcom < endstr {
-			startcom = 0
-		}
-		startstr = endstr + 1 + strings.Index(s[endstr+1:], "\"")
-	}
-	if startcom > 0 {
-		st.comment = strings.TrimSpace(s[startcom+2:])
-		s = strings.TrimSpace(s[:startcom])
-	}
-
 	// Split into fields
 	fields := strings.Fields(s)
 	if len(fields) < 1 {
 		return nil
+	}
+
+	// Fix where a comment start if any.
+	// We need to make sure that the comment isn't embedded in a string literal.
+	if !isPreProcessorInstruction(fields[0]) {
+		if startcom, mark := findLineComment(s); startcom > 0 {
+			st.comment = strings.TrimSpace(s[startcom+len(mark):])
+			st.commentMark = mark
+			s = strings.TrimSpace(s[:startcom])
+			fields = strings.Fields(s)
+			if len(fields) < 1 {
+				return nil
+			}
+		}
 	}
 	st.instruction = fields[0]
 
@@ -426,10 +471,12 @@ func newStatement(s string, defs map[string]struct{}) *statement {
 func (st *statement) setParams(s string) {
 	st.params = make([]string, 0)
 	runes := []rune(s)
-	last := '\n'
+	last := rune(0)
 	inComment := false
 	inStringLiteral := false
 	inCharLiteral := false
+	trackDepth := st.usesGasParams()
+	depth := 0
 	out := make([]rune, 0, len(runes))
 	for _, r := range runes {
 		switch r {
@@ -446,7 +493,7 @@ func (st *statement) setParams(s string) {
 				inCharLiteral = true
 			}
 		case ',':
-			if inComment || inStringLiteral || inCharLiteral {
+			if inComment || inStringLiteral || inCharLiteral || (trackDepth && depth > 0) {
 				break
 			}
 			c := strings.TrimSpace(string(out))
@@ -462,6 +509,14 @@ func (st *statement) setParams(s string) {
 		case '*':
 			if last == '/' {
 				inComment = true
+			}
+		case '(', '[', '{':
+			if trackDepth && !inComment && !inStringLiteral && !inCharLiteral {
+				depth++
+			}
+		case ')', ']', '}':
+			if trackDepth && !inComment && !inStringLiteral && !inCharLiteral && depth > 0 {
+				depth--
 			}
 		case '\t':
 			if !st.isPreProcessor() {
@@ -489,7 +544,7 @@ func (st *statement) setParams(s string) {
 
 // Return true if this line should be at indentation level 0.
 func (st statement) level0() bool {
-	return st.isLabel() || st.isTEXT() || st.isPreProcessor()
+	return st.isLabel() || st.isTEXT() || st.isPreProcessor() || st.isGasDirective()
 }
 
 // Will return true if the statement is a label.
@@ -499,7 +554,7 @@ func (st statement) isLabel() bool {
 
 // isPreProcessor will return if the statement is a preprocessor statement.
 func (st statement) isPreProcessor() bool {
-	return strings.HasPrefix(st.instruction, "#")
+	return isPreProcessorInstruction(st.instruction)
 }
 
 // isGlobal returns true if the current instruction is
@@ -525,16 +580,90 @@ func (st statement) isTEXT() bool {
 // indentation is likely to be level 0.
 func (st statement) isTerminator() bool {
 	up := strings.ToUpper(st.instruction)
-	return up == "RET" || up == "JMP"
+	switch up {
+	case "RET", "JMP", "J", "JR":
+		return true
+	}
+	low := strings.ToLower(st.instruction)
+	if low != st.instruction {
+		return false
+	}
+	switch low {
+	case "jal", "jalr", "tail", "call", "ebreak", "ecall", "mret", "sret", "uret",
+		"beq", "bne", "blt", "bge", "bltu", "bgeu",
+		"beqz", "bnez", "blez", "bgez", "bltz", "bgtz",
+		"bgt", "ble", "bgtu", "bleu":
+		return true
+	default:
+		return false
+	}
 }
 
 // Detects commands based on case.
 func (st statement) isCommand() bool {
-	if st.isLabel() {
+	if st.isLabel() || st.isPreProcessor() || st.isGasDirective() {
 		return false
 	}
 	up := strings.ToUpper(st.instruction)
 	return up == st.instruction
+}
+
+func (st statement) isGasDirective() bool {
+	return strings.HasPrefix(st.instruction, ".") && !st.isLabel()
+}
+
+func (st statement) usesGasParams() bool {
+	if st.isGasDirective() {
+		return true
+	}
+	r, _ := utf8.DecodeRuneInString(st.instruction)
+	return unicode.IsLower(r)
+}
+
+func (st statement) isGasBlockStart() bool {
+	switch st.instruction {
+	case ".macro", ".irp", ".irpc", ".rept", ".if", ".ifdef", ".ifndef", ".ifnotdef",
+		".ifb", ".ifnb", ".ifc", ".ifnc", ".ifeq", ".ifne", ".ifge", ".ifgt", ".ifle", ".iflt":
+		return true
+	default:
+		return false
+	}
+}
+
+func (st statement) isGasBlockMiddle() bool {
+	switch st.instruction {
+	case ".elseif", ".else":
+		return true
+	default:
+		return false
+	}
+}
+
+func (st statement) isGasBlockEnd() bool {
+	switch st.instruction {
+	case ".endm", ".endr", ".endif":
+		return true
+	default:
+		return false
+	}
+}
+
+func (st statement) isGasZeroDirective() bool {
+	if !st.isGasDirective() {
+		return false
+	}
+	switch st.instruction {
+	case ".text", ".data", ".rodata", ".bss", ".section", ".pushsection", ".popsection",
+		".previous", ".subsection", ".globl", ".global", ".local", ".weak", ".comm",
+		".common", ".file", ".ident", ".size", ".type", ".attribute", ".option",
+		".align", ".p2align", ".balign", ".equ", ".set", ".byte", ".2byte", ".half",
+		".short", ".4byte", ".word", ".long", ".8byte", ".dword", ".quad", ".float",
+		".double", ".string", ".asciz", ".zero", ".sleb128", ".uleb128", ".variant_cc",
+		".reloc":
+		return true
+	default:
+		return false
+	}
 }
 
 // Detect if last character is '\', indicating a multiline statement.
@@ -628,7 +757,7 @@ func formatStatements(s []statement) []string {
 			for i := 0; i < it; i++ {
 				r = r + " "
 			}
-			r += fmt.Sprintf("// %s", x.comment)
+			r += fmt.Sprintf("%s %s", x.lineCommentMark(), x.comment)
 		}
 
 		if x.continued {
@@ -643,10 +772,167 @@ func formatStatements(s []statement) []string {
 			r += `\`
 			// Add comment, if any.
 			if len(x.comment) > 0 {
-				r += " // " + x.comment
+				r += " " + x.lineCommentMark() + " " + x.comment
 			}
 		}
 		res[i] = r
 	}
 	return res
+}
+
+func (st statement) lineCommentMark() string {
+	if st.commentMark != "" {
+		return st.commentMark
+	}
+	return "//"
+}
+
+func findLineComment(s string) (int, string) {
+	inStringLiteral := false
+	inCharLiteral := false
+	inBlockComment := false
+	last := rune(0)
+	for i, r := range s {
+		switch r {
+		case '"':
+			if !inCharLiteral && last != '\\' {
+				inStringLiteral = !inStringLiteral
+			}
+		case '\'':
+			if !inStringLiteral && last != '\\' {
+				inCharLiteral = !inCharLiteral
+			}
+		case '/':
+			if !inStringLiteral && !inCharLiteral && i+1 < len(s) && s[i+1] == '/' {
+				return i, "//"
+			}
+			if !inStringLiteral && !inCharLiteral && inBlockComment && last == '*' {
+				inBlockComment = false
+			}
+		case '*':
+			if !inStringLiteral && !inCharLiteral && last == '/' {
+				inBlockComment = true
+			}
+		case '#':
+			if !inStringLiteral && !inCharLiteral && !inBlockComment && isHashLineComment(s, i) {
+				return i, "#"
+			}
+		}
+		last = r
+	}
+	return -1, ""
+}
+
+func isHashLineComment(s string, i int) bool {
+	if i == 0 {
+		return true
+	}
+	if !unicode.IsSpace(rune(s[i-1])) {
+		return false
+	}
+	return i+1 == len(s) || unicode.IsSpace(rune(s[i+1]))
+}
+
+func findBlockCommentStart(s string) int {
+	inStringLiteral := false
+	inCharLiteral := false
+	last := rune(0)
+	for i, r := range s {
+		switch r {
+		case '"':
+			if !inCharLiteral && last != '\\' {
+				inStringLiteral = !inStringLiteral
+			}
+		case '\'':
+			if !inStringLiteral && last != '\\' {
+				inCharLiteral = !inCharLiteral
+			}
+		case '*':
+			if !inStringLiteral && !inCharLiteral && last == '/' {
+				return i - 1
+			}
+		}
+		last = r
+	}
+	return -1
+}
+
+func splitStatements(s string) []string {
+	var parts []string
+	inStringLiteral := false
+	inCharLiteral := false
+	inBlockComment := false
+	last := rune(0)
+	start := 0
+	for i, r := range s {
+		switch r {
+		case '"':
+			if !inCharLiteral && last != '\\' {
+				inStringLiteral = !inStringLiteral
+			}
+		case '\'':
+			if !inStringLiteral && last != '\\' {
+				inCharLiteral = !inCharLiteral
+			}
+		case '/':
+			if !inStringLiteral && !inCharLiteral && i+1 < len(s) && s[i+1] == '/' {
+				return appendSemicolonPart(parts, s[start:])
+			}
+			if !inStringLiteral && !inCharLiteral && inBlockComment && last == '*' {
+				inBlockComment = false
+			}
+		case '*':
+			if !inStringLiteral && !inCharLiteral && last == '/' {
+				inBlockComment = true
+			}
+		case '#':
+			if !inStringLiteral && !inCharLiteral && !inBlockComment && isHashLineComment(s, i) {
+				return appendSemicolonPart(parts, s[start:])
+			}
+		case ';':
+			if !inStringLiteral && !inCharLiteral && !inBlockComment {
+				parts = appendSemicolonPart(parts, s[start:i])
+				start = i + 1
+			}
+		}
+		last = r
+	}
+	parts = appendSemicolonPart(parts, s[start:])
+	if len(parts) <= 1 {
+		return nil
+	}
+	return parts
+}
+
+func shouldSplitSemicolonStatements(s string) bool {
+	if strings.HasPrefix(s, "#") || !strings.Contains(s, ";") || strings.HasSuffix(strings.TrimSpace(s), `\`) {
+		return false
+	}
+	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return false
+	}
+	inst := fields[0]
+	if strings.HasPrefix(inst, ".") {
+		return true
+	}
+	r, _ := utf8.DecodeRuneInString(inst)
+	return unicode.IsLower(r)
+}
+
+func appendSemicolonPart(parts []string, s string) []string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return parts
+	}
+	return append(parts, s)
+}
+
+func isPreProcessorInstruction(s string) bool {
+	switch s {
+	case "#define", "#include", "#if", "#ifdef", "#ifndef", "#else", "#elif", "#endif", "#undef", "#error", "#warning", "#pragma":
+		return true
+	default:
+		return false
+	}
 }

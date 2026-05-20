@@ -1,0 +1,34 @@
+.file 1 "foo.S"
+.text
+.section .text.startup,"ax",@progbits
+.globl foo
+.global bar
+.local local_sym
+.weak weak_sym
+.type foo, @function
+.size foo, .-foo
+.align 2
+.p2align 4,,15
+.balign 8
+.comm common_sym, 16, 8
+.ident "asmfmt"
+.data
+.byte 1,2,3
+.2byte 4
+.half 5
+.short 6
+.4byte 7
+.word 8
+.long 9
+.8byte 10
+.dword 11
+.quad 12
+.float 1.0
+.double 2.0
+.string "hello, world"
+.asciz "zero"
+.zero 16
+.sleb128 -1
+.uleb128 127
+.variant_cc foo
+.reloc ., R_RISCV_NONE, foo

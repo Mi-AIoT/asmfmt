@@ -1,0 +1,20 @@
+.text
+.globl reloc_labels
+reloc_labels:
+  lui a0, %hi(symbol + 4)
+  addi a0, a0, %lo(symbol + 4)
+1:
+  auipc a1, %pcrel_hi(msg)
+  ld a1, %pcrel_lo(1b)(a1)
+  la a2, %got_pcrel_hi(global)(a2)
+  lui tp, %tprel_hi(tlsvar)
+  add tp, tp, a0, %tprel_add(tlsvar)
+  addi tp, tp, %tprel_lo(tlsvar)
+  auipc a3, %tls_ie_pcrel_hi(tlsvar)
+  auipc a4, %tls_gd_pcrel_hi(tlsvar)
+.Ltmp0:
+  j 1f
+symbol:
+  .word .-symbol
+1:
+  ret
