@@ -1,3 +1,5 @@
+version: 2
+
 builds:
   -
     id: "asmfmt"
@@ -31,24 +33,18 @@ archives:
   -
     id: asmfmt
     name_template: "asmfmt-{{ .Os }}_{{ .Arch }}_{{ .Version }}"
-    replacements:
-      aix: AIX
-      darwin: OSX
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
-      freebsd: FreeBSD
-      netbsd: NetBSD
+    formats:
+      - tar.gz
     format_overrides:
       - goos: windows
-        format: zip
+        formats:
+          - zip
     files:
       - LICENSE
 checksum:
   name_template: 'checksums.txt'
 snapshot:
-  name_template: "{{ .Tag }}-next"
+  version_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
@@ -70,8 +66,3 @@ nfpms:
     formats:
       - deb
       - rpm
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      freebsd: FreeBSD
-      amd64: x86_64
