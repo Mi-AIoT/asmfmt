@@ -1,66 +1,309 @@
 # asmfmt
-Go Assembler Formatter
+
+[![CI](https://github.com/Mi-AIoT/asmfmt/actions/workflows/go.yml/badge.svg)](https://github.com/Mi-AIoT/asmfmt/actions/workflows/go.yml)
+[![Release](https://github.com/Mi-AIoT/asmfmt/actions/workflows/release.yml/badge.svg)](https://github.com/Mi-AIoT/asmfmt/actions/workflows/release.yml)
+
+An assembler formatter for Go / Plan 9 assembly, GAS syntax, and RISC-V code
 
 English | [简体中文](README.zh.md)
 
-This will format your assembler code in a similar way that `gofmt` formats your Go code.
+`asmfmt` formats assembly source in the same spirit that `gofmt` formats Go
+code.
 
-Read Introduction: [asmfmt: Go Assembler Formatter](https://blog.klauspost.com/asmfmt-assembler-formatter/)
+It is primarily aimed at Go / Plan 9 assembly, and also supports a growing
+subset of GAS-style syntax used in ELF-oriented codebases, including RISC-V.
 
-[![Go Reference](https://pkg.go.dev/badge/klauspost/asmfmt.svg)](https://pkg.go.dev/klauspost/asmfmt)
-[![Go](https://github.com/klauspost/asmfmt/actions/workflows/go.yml/badge.svg)](https://github.com/klauspost/asmfmt/actions/workflows/go.yml)
+Status: `STABLE`. Default output is intended to remain stable unless a bug is
+being fixed.
 
-See [Example 1](https://files.klauspost.com/diff.html), [Example 2](https://files.klauspost.com/diff2.html), [Example 3](https://files.klauspost.com/diff3.html), or compare files in the [testdata folder](https://github.com/klauspost/asmfmt/tree/master/testdata).
+This repository is actively maintained as a fork of
+[`klauspost/asmfmt`](https://github.com/klauspost/asmfmt). It keeps the original
+formatter behavior where practical, while continuing development for use cases
+that are no longer moving upstream.
 
-Status: STABLE. The format will only change if bugs are found. Please report any feedback in the issue section.
+## Why asmfmt
 
-# install
+`asmfmt` is useful when you want assembly code to be easier to review and keep
+consistent across a codebase.
 
-Binaries can be downloaded from [Releases](https://github.com/klauspost/asmfmt/releases). Unpack the file into your executable path.
+It can:
 
-To install the standalone formatter from source using Go framework: `go install github.com/klauspost/asmfmt/cmd/asmfmt@latest`.
+* normalize indentation,
+* align operands and end-of-line comments,
+* clean up blank lines and semicolon-separated statements,
+* preserve historical default behavior when no config is present,
+* run as either a CLI tool or a Go library.
 
-# updates
+## Quick start
 
-* Apr 8, 2021: Add modules info and remove other than main tools. 
-* Jan 6, 2021: Fix C comments before line comments like `VPCMPEQB Y8/*(DI)*/, Y0, Y1 // comment...`
-* Aug 8, 2016: Don't indent comments before non-indented instruction.
-* Jun 10, 2016: Fixed crash with end-of-line comments that contained an end-of-block `/*` part.
-* Apr 14, 2016: Fix end of multiline comments in macro definitions.
-* Apr 14, 2016: Updated tools to Go 1.5+
-* Dec 21, 2015: Space before semi-colons in macro definitions is now trimmed.
-* Dec 21, 2015: Fix line comments in macro definitions (only valid with Go 1.5).
-* Dec 17, 2015: Comments are better aligned to the following section.
-* Dec 17, 2015: Clean semi-colons in multiple instruction per line.
+Install the CLI:
 
-# goland
+```bash
+go install github.com/Mi-AIoT/asmfmt/cmd/asmfmt@latest
+```
 
-To set up a custom File Watcher in Goland, 
+If you are depending on this fork as a Go module, check the current `go.mod`
+module path first. The CLI install path and the library import path may differ
+until the module path is moved from the upstream origin.
 
-* Go to Settings -> Tools -> File Watchers
-* Press **+** and choose `<custom>` template.
-* Name it `asmfmt`
-* File Type, Select `x86 Plan 9 Assembly file` (it will apply to all platforms)
-* Scope: `Project Files`
-* Arguments: `$FilePath$`.
-* Output Paths to Refresh: `$FilePath$`
-* Working Directory: `$ProjectFileDir$`
+Format a file in place:
 
-Advanced options, Enable:
+```bash
+asmfmt -w path/to/file.s
+```
 
-* [x] Trigger the watcher regardless of syntax errors (IMPORTANT) 
-* [x] Create output file from stdout
+Preview changes as a diff:
 
-Disable the rest.
+```bash
+asmfmt -d path/to/file.s
+```
+
+Format a directory tree:
+
+```bash
+asmfmt ./...
+```
+
+`asmfmt` only processes `.s` files. Do not run it on non-assembly inputs.
+
+## Example
+
+Input:
+
+```asm
+TEXT foo(SB),$0
+MOVQ AX,BX //comment
+loop:ADDQ $1,AX;JMP loop
+```
+
+Output:
+
+```asm
+TEXT foo(SB), $0
+	MOVQ AX, BX // comment
+
+loop:
+	ADDQ $1, AX
+	JMP  loop
+```
+
+For larger examples, see
+[testdata](https://github.com/Mi-AIoT/asmfmt/tree/master/testdata).
+
+## CLI usage
+
+```text
+asmfmt [flags] [path ...]
+```
+
+Common flags:
+
+* `-w` overwrite files in place
+* `-d` print a diff instead of rewritten source
+* `-l` print files whose formatting differs
+* `-e` report all errors instead of stopping after the first 10
+* `-config` load formatting options from a specific TOML file
+
+If no path is provided, `asmfmt` reads from standard input and writes the
+formatted result to standard output. `-w` cannot be used with standard input.
+
+## Configuration
+
+`asmfmt` supports a single TOML configuration file.
+
+Load a config explicitly:
+
+```bash
+asmfmt -config /path/to/asmfmt.toml ./...
+```
+
+If `-config` is not provided, the first matching config is used in this order:
+
+1. The nearest `.asmfmt.toml` found by walking upward from the formatted file's directory
+2. `~/.asmfmt.toml`
+3. `/etc/asmfmt.toml`
+
+Rules:
+
+* Only one config file is used.
+* Config files are not merged.
+* Unknown fields and invalid values are errors.
+* Unset fields keep the built-in defaults.
+* For standard input, project-directory lookup is skipped unless `-config` is provided.
+
+Minimal example:
+
+```toml
+indent_style = "space"
+indent_width = 4
+source_style = "riscv-gas"
+align_comments = true
+```
+
+Supported config keys:
+
+* `indent_style`: `tab` or `space`
+* `indent_width`: positive integer, used when `indent_style = "space"`
+* `align_operands`
+* `align_comments`
+* `align_continuations`
+* `max_blank_lines`
+* `split_semicolon_statements`
+* `newline_before_comments`
+* `newline_before_labels`
+* `labels_always_on_own_line`
+* `line_comment_space`
+* `convert_single_line_block_comment`
+* `preferred_comment_style`: `preserve` or `slash`
+* `source_style`: `auto`, `plan9`, `gas`, or `riscv-gas`
+
+See [.asmfmt.toml.example](.asmfmt.toml.example) for a fully commented reference.
+
+## Supported syntax
+
+`asmfmt` primarily targets Go / Plan 9 assembly and also supports a conservative
+subset of GAS-like syntax.
+
+Covered and tested areas include:
+
+* Go / Plan 9 indentation and alignment rules
+* GAS directives commonly used in RISC-V assembly such as `.section`,
+  `.attribute`, `.option`, `.insn`, relocation helpers, CFI directives, data
+  directives, and symbol visibility directives
+* GAS macro blocks such as `.macro`, `.irp`, `.irpc`, `.rept`, `.if`, `.else`,
+  and matching end directives
+* GAS comments using `#`, `//`, block comments, and ARM/GAS `@` line comments
+  when the source is detected as GAS-like
+* RISC-V operand forms such as `%hi(...)`, `%lo(...)`, `%pcrel_hi(...)`,
+  `%pcrel_lo(...)`, local numeric labels like `1b`, CSR operands, vector
+  operands, compressed mnemonics, and `.insn` encodings
+
+Unknown directives and unknown lowercase mnemonics are preserved
+conservatively. `asmfmt` will still clean up surrounding whitespace and
+alignment, but it does not try to validate or normalize unknown syntax beyond
+safe formatting behavior.
+
+## Fork status
+
+This fork is intended to be maintained independently.
+
+Current goals:
+
+* keep the original formatter stable for existing users,
+* continue improving GAS and RISC-V coverage,
+* accept fixes and features without waiting on upstream activity,
+* keep configuration and CLI behavior predictable.
+
+The project still inherits design and historical behavior from the upstream
+implementation, but documentation and releases in this repository describe the
+forked project rather than the original upstream repository.
+
+## Formatting behavior
+
+Default behavior includes:
+
+* tabs for indentation and spaces for alignment,
+* operand alignment,
+* end-of-line comment alignment,
+* trailing whitespace removal,
+* blank-line cleanup,
+* label normalization onto their own lines,
+* comment spacing cleanup,
+* single-line block comment conversion when safe,
+* semicolon cleanup and splitting where the detected style permits it.
+
+If you need deterministic behavior across a mixed codebase, set
+`source_style` explicitly instead of relying on auto-detection.
+
+## Non-goals
+
+`asmfmt` is a formatter, not an assembler or linter.
+
+It does not aim to:
+
+* validate opcode legality,
+* reject unknown directives or vendor mnemonics,
+* require binutils or another assembler at runtime,
+* guarantee semantic equivalence by default,
+* rewrite unrelated Plan 9 formatting behavior to match GAS conventions.
+
+## Library usage
+
+`asmfmt` can also be used as a Go package:
+
+```go
+package main
+
+import (
+	"bytes"
+	"fmt"
+
+	"github.com/klauspost/asmfmt"
+)
+
+func main() {
+	src := bytes.NewBufferString("TEXT foo(SB),$0\nMOVQ AX,BX\n")
+	out, err := asmfmt.Format(src)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Print(string(out))
+}
+```
+
+For configurable formatting, use `asmfmt.FormatWithOptions(...)`.
+
+Note: the current library import path is still the upstream module path shown
+above. If this fork adopts its own module path later, the import path in this
+example will need to change accordingly.
+
+## Development
+
+Common commands:
+
+```bash
+go test ./...
+go vet ./...
+gofmt -w .
+```
+
+Refresh golden files after an intentional formatting change:
+
+```bash
+go test -run TestRewrite -update
+```
+
+More focused regression commands and contribution workflow details are described
+in [AGENTS.md](AGENTS.md).
+
+## Editor integration
+
+### GoLand
+
+You can set up a custom File Watcher:
+
+* `Settings -> Tools -> File Watchers`
+* create a `<custom>` watcher named `asmfmt`
+* `File Type`: `x86 Plan 9 Assembly file`
+* `Scope`: `Project Files`
+* `Arguments`: `$FilePath$`
+* `Output Paths to Refresh`: `$FilePath$`
+* `Working Directory`: `$ProjectFileDir$`
+
+Enable:
+
+* `Trigger the watcher regardless of syntax errors`
+* `Create output file from stdout`
+
+Disable the remaining advanced options.
 
 ![Goland Configuration](https://user-images.githubusercontent.com/5663952/114158973-96eebc80-9925-11eb-9aea-703ce474a7bb.png)
 
+### Emacs
 
-# emacs
+To format assembler files on save:
 
-To automatically format assembler, in `.emacs` add:
-
-```
+```elisp
 (defun asm-mode-setup ()
   (set (make-local-variable 'gofmt-command) "asmfmt")
   (add-hook 'before-save-hook 'gofmt nil t)
@@ -69,172 +312,20 @@ To automatically format assembler, in `.emacs` add:
 (add-hook 'asm-mode-hook 'asm-mode-setup)
 ```
 
-# usage
+## Source style differences
 
-`asmfmt [flags] [path ...]`
+`asmfmt` can auto-detect source style, or you can force it with
+`source_style` in `.asmfmt.toml`.
 
-The flags are similar to `gofmt`, except it will only process `.s` files:
-```
-	-config string
-		Read formatting options from this TOML file.
-	-d
-		Do not print reformatted sources to standard output.
-		If a file's formatting is different than asmfmt's, print diffs
-		to standard output.
-	-e
-		Print all (including spurious) errors.
-	-l
-		Do not print reformatted sources to standard output.
-		If a file's formatting is different from asmfmt's, print its name
-		to standard output.
-	-w
-		Do not print reformatted sources to standard output.
-		If a file's formatting is different from asmfmt's, overwrite it
-		with asmfmt's version.
-```
-You should only run `asmfmt` on files that are assembler files. Assembler files cannot be positively identified, so it will mangle non-assembler files.
+The current style modes differ mainly in comment handling, statement splitting,
+and syntax detection:
 
-# configuration
+| Style | Typical input | Comment handling | Semicolon splitting | Detection hints | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `plan9` | Go / Plan 9 assembly | `//` is treated as a line comment. `#` is not treated as a comment marker. `@` line comments are disabled. | Disabled. `;` is not treated as a normal statement separator. | `(SB)`, `(FP)`, `(PC)`, `(SP)`, and uppercase instruction forms tend to identify Plan 9 style. | Best for traditional Go assembler sources. |
+| `gas` | Generic GAS-style assembly | `//` and `#` are treated as line comments. `@` line comments are also supported in GAS-like input when used in comment position. | Enabled where the input looks like GAS instruction or directive syntax. | Dot-directives such as `.section` and lowercase instruction forms tend to identify GAS style. | Best for non-Go ELF/GAS assembly that does not need RISC-V-specific detection. |
+| `riscv-gas` | RISC-V assembly using GAS syntax | Same comment behavior as `gas`. | Same general semicolon behavior as `gas`. | RISC-V-specific forms such as `%hi(...)`, `%lo(...)`, `%pcrel_hi(...)`, `%pcrel_lo(...)`, `.option`, `.attribute`, `.insn`, `R_RISCV_...`, and common RISC-V register names promote detection to `riscv-gas`. | This is a GAS sub-mode with stronger RISC-V-oriented detection and syntax coverage. |
+| `auto` | Mixed or unknown input | Uses the detected style for comment parsing. | Uses the detected style for statement splitting. | Starts conservative, then upgrades based on syntax seen in the file. | Recommended when your codebase is consistent and you want minimal configuration. |
 
-`asmfmt` supports a single TOML configuration file for formatting behavior.
-
-You can load a config explicitly:
-
-```bash
-asmfmt -config /path/to/asmfmt.toml ./...
-```
-
-If `-config` is not provided, `asmfmt` automatically looks for the first matching file in this order:
-
-1. Project config: the nearest `.asmfmt.toml` found by walking upward from the formatted file's directory.
-2. User config: `~/.asmfmt.toml`
-3. Global config: `/etc/asmfmt.toml`
-
-Additional rules:
-
-* Only the first matching config is used.
-* Config files are not merged.
-* Directory formatting reuses the config found from the starting directory for the entire walk.
-* Standard input does not do project-directory lookup. It only checks `~/.asmfmt.toml` and `/etc/asmfmt.toml`, unless `-config` is provided.
-* Unknown fields and invalid values are treated as errors.
-* Unset fields keep the built-in defaults, so no config still matches historical behavior.
-
-A fully commented reference config is available in [.asmfmt.toml.example](.asmfmt.toml.example).
-
-# supported syntax
-
-`asmfmt` primarily formats Go/Plan 9 style assembly, and also supports a growing subset of GAS-style syntax that is common in RISC-V and ELF-oriented assembler sources.
-
-Supported and tested coverage includes:
-
-* Go / Plan 9 assembler indentation and alignment rules.
-* GAS directives used in RISC-V assembly, including `.section`, `.attribute`, `.option`, `.insn`, relocation helpers, CFI directives, data directives, and symbol visibility directives.
-* GAS macro blocks such as `.macro`, `.irp`, `.irpc`, `.rept`, `.if`, `.else`, and matching end directives.
-* GAS comments using `#`, `//`, block comments, and ARM/GAS `@` line comments when the source is detected as GAS-like.
-* RISC-V operand forms such as `%hi(...)`, `%lo(...)`, `%pcrel_hi(...)`, `%pcrel_lo(...)`, local numeric labels like `1b`, CSR operands, vector operands, compressed mnemonics, and `.insn` encodings.
-
-Unknown directives and unknown lowercase mnemonics are preserved conservatively. `asmfmt` will still align and indent surrounding code, but it does not try to validate or normalize unknown syntax beyond safe whitespace handling.
-
-# non-goals
-
-`asmfmt` is a formatter, not an assembler or linter.
-
-It intentionally does not:
-
-* validate opcode legality,
-* reject unknown directives or vendor mnemonics,
-* require binutils or another assembler at runtime,
-* guarantee semantic equivalence through default tests,
-* rewrite unrelated Plan 9 formatting behavior to follow GAS conventions.
-
-# style detection
-
-Dialect detection is internal and heuristic by default, but configuration can force a syntax mode.
-
-Current style hints are used to distinguish:
-
-* Plan 9 / Go assembler files,
-* GAS-like files,
-* RISC-V GAS files.
-
-These hints affect whether `#` or `@` starts a comment, whether `;` should split statements, and whether lowercase mnemonics are treated as instruction-stream commands. Detection is intentionally conservative to avoid breaking existing Plan 9 formatting.
-
-If you need deterministic behavior for a mixed codebase, set `source_style` in `.asmfmt.toml` to one of:
-
-* `auto`
-* `plan9`
-* `gas`
-* `riscv-gas`
-
-# formatting
-
-Default formatting behavior:
-
-* Automatic indentation.
-* Tabs for indentation and spaces for alignment.
-* Remove trailing whitespace.
-* Align the first parameter.
-* Align end-of-line comments in a block.
-* Eliminate repeated blank lines.
-* Remove `;` at end of line.
-* Insert a blank line before comment blocks, except when preceded by label or another comment block.
-* Insert a blank line before labels, except when preceded by comment-only structure that should stay attached.
-* Move labels to their own line, except for comment-only handling.
-* Retain block breaks between logical sections.
-* Convert single-line block comments to line comments.
-* Add a space after line comment markers, except in preserved special cases such as `//go:build`.
-* Keep a space between parameters.
-* Track macros in the same file and exclude them from normal parameter indentation heuristics.
-* Keep `TEXT`, `DATA`, `GLOBL`, `FUNCDATA`, `PCDATA`, and labels at level 0 indentation.
-* Align `\` in multiline macros.
-* Remove whitespace before separating `;`, and insert a space after `;` when followed by another instruction.
-
-Supported configuration keys:
-
-* `indent_style`: `tab` or `space`
-* `indent_width`: positive integer, used only when `indent_style = "space"`
-* `align_operands`: align the first operand column
-* `align_comments`: align end-of-line comments
-* `align_continuations`: align trailing `\` continuations
-* `max_blank_lines`: maximum consecutive blank lines to preserve
-* `split_semicolon_statements`: split `a; b` into separate statements when style permits
-* `newline_before_comments`: insert formatter-managed blank lines before comment blocks
-* `newline_before_labels`: insert formatter-managed blank lines before labels
-* `labels_always_on_own_line`: rewrite `label: instruction` into separate lines
-* `line_comment_space`: control whether `// comment` or `//comment` is emitted
-* `convert_single_line_block_comment`: control whether `/* comment */` becomes `// comment`
-* `preferred_comment_style`: `preserve` or `slash`
-* `source_style`: `auto`, `plan9`, `gas`, or `riscv-gas`
-
-# tests
-
-Default verification stays self-contained:
-
-* `go test ./...`
-* `go vet ./...`
-* `go test -run TestRewrite ./...`
-
-Optional local corpus formatting checks can be enabled with:
-
-* `ASMFMT_CORPUS_DIR=/path/to/corpus go test -run TestOptionalCorpus ./...`
-
-This walks local assembly files and checks that formatting is idempotent. No network access is used.
-
-Optional semantic equivalence checks can be enabled with an assembler and objdump:
-
-* `ASMFMT_AS=riscv64-linux-gnu-as`
-* `ASMFMT_OBJDUMP=riscv64-linux-gnu-objdump`
-* `ASMFMT_ASFLAGS='-march=rv64gc -mabi=lp64d'`
-* `go test -run TestOptionalSemanticEquivalence ./...`
-
-These tests are skipped unless the environment is explicitly configured.
-
-# adding fixtures
-
-When extending syntax coverage:
-
-* add one focused feature or syntax family per fixture when possible,
-* always add both `testdata/name.in` and `testdata/name.golden`,
-* use `go test -run TestRewrite -update` only for intentional output changes to existing fixtures,
-* for brand-new fixtures, generate the initial `.golden` and then rerun `go test -run TestRewrite ./...` to confirm idempotence,
-* remove any `*.asmfmt` diagnostics left behind by failing tests before committing.
+If a mixed codebase needs deterministic results, prefer setting
+`source_style` explicitly instead of relying on auto-detection.
