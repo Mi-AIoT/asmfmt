@@ -119,18 +119,18 @@ func writeFile(t *testing.T, path, contents string) {
 }
 func TestCLIInitOption(t *testing.T) {
 	root := t.TempDir()
-	
+
 	// Run -init for the first time
 	_, stderr, err := runCLI(t, root, nil, nil, "-init")
 	if err != nil {
 		t.Fatalf("runCLI -init: %v\nstderr:\n%s", err, stderr)
 	}
-	
+
 	cfgPath := filepath.Join(root, ".asmfmt.toml")
 	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
 		t.Fatal(".asmfmt.toml was not created")
 	}
-	
+
 	cfgBytes, err := os.ReadFile(cfgPath)
 	if err != nil {
 		t.Fatal(err)
@@ -138,7 +138,7 @@ func TestCLIInitOption(t *testing.T) {
 	if len(cfgBytes) == 0 {
 		t.Fatal(".asmfmt.toml is empty")
 	}
-	
+
 	// Run -init again - should fail and error out
 	_, stderr2, err2 := runCLI(t, root, nil, nil, "-init")
 	if err2 == nil {
@@ -150,12 +150,12 @@ func TestCLIInitOption(t *testing.T) {
 }
 func TestCLIVersionOption(t *testing.T) {
 	root := t.TempDir()
-	
+
 	stdout, stderr, err := runCLI(t, root, nil, nil, "-version")
 	if err != nil {
 		t.Fatalf("runCLI -version: %v\nstderr:\n%s", err, stderr)
 	}
-	
+
 	if !bytes.Contains([]byte(stdout), []byte("version:")) {
 		t.Fatalf("expected stdout to contain version:, got: %s", stdout)
 	}

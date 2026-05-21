@@ -28,12 +28,12 @@ var (
 
 var (
 	// main operation modes
-	list      = flag.Bool("l", false, "list files whose formatting differs from asmfmt's")
-	write     = flag.Bool("w", false, "write result to (source) file instead of stdout")
-	doDiff    = flag.Bool("d", false, "display diffs instead of rewriting files")
-	allErrors = flag.Bool("e", false, "report all errors (not just the first 10 on different lines)")
-	config    = flag.String("config", "", "read formatting options from this TOML file")
-	initCfg   = flag.Bool("init", false, "create a default .asmfmt.toml configuration file in the current directory")
+	list        = flag.Bool("l", false, "list files whose formatting differs from asmfmt's")
+	write       = flag.Bool("w", false, "write result to (source) file instead of stdout")
+	doDiff      = flag.Bool("d", false, "display diffs instead of rewriting files")
+	allErrors   = flag.Bool("e", false, "report all errors (not just the first 10 on different lines)")
+	config      = flag.String("config", "", "read formatting options from this TOML file")
+	initCfg     = flag.Bool("init", false, "create a default .asmfmt.toml configuration file in the current directory")
 	showVersion = flag.Bool("version", false, "print version information and exit")
 
 	// debugging
