@@ -73,11 +73,23 @@ jobs:
           go-version: '1.26.x'
           cache: true
 
+      - name: Check for custom release notes
+        id: custom_notes
+        run: |
+          NOTE_FILE="docs/release_notes_${{ github.ref_name }}.md"
+          if [ -f "$NOTE_FILE" ]; then
+            echo "Found custom release notes: $NOTE_FILE"
+            echo "args=release --clean --release-notes=$NOTE_FILE" >> $GITHUB_OUTPUT
+          else
+            echo "No custom release notes found, using default changelog."
+            echo "args=release --clean" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           version: '~> v2'
-          args: release --clean
+          args: ${{ steps.custom_notes.outputs.args }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CGO_ENABLED: 0
