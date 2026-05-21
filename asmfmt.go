@@ -57,7 +57,7 @@ type fstate struct {
 	blockCanonical    bool
 	blockBuffered     bool
 	blockBuffer       []string
-	indentation       int  // Indentation level
+	indentation       int // Indentation level
 	lastEmpty         bool
 	lastComment       bool
 	lastBlockComment  bool
