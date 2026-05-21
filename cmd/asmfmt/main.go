@@ -26,6 +26,7 @@ var (
 	doDiff    = flag.Bool("d", false, "display diffs instead of rewriting files")
 	allErrors = flag.Bool("e", false, "report all errors (not just the first 10 on different lines)")
 	config    = flag.String("config", "", "read formatting options from this TOML file")
+	initCfg   = flag.Bool("init", false, "create a default .asmfmt.toml configuration file in the current directory")
 
 	// debugging
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to this file")
@@ -50,8 +51,27 @@ func report(err error) {
 }
 
 func usage() {
-	fmt.Fprintf(os.Stderr, "usage: asmfmt [flags] [path ...]\n")
+	fmt.Fprintf(os.Stderr, "usage: asmfmt [flags] [path ...]\n\n")
+	fmt.Fprintf(os.Stderr, "asmfmt formats Go/Plan 9, GAS, and RISC-V assembly source files.\n")
+	fmt.Fprintf(os.Stderr, "If no paths are provided, it reads from standard input and writes to standard output.\n\n")
+	fmt.Fprintf(os.Stderr, "Flags:\n")
 	flag.PrintDefaults()
+	fmt.Fprintf(os.Stderr, "\nConfiguration Discovery:\n")
+	fmt.Fprintf(os.Stderr, "  If -config is not specified, asmfmt searches for a config in this order:\n")
+	fmt.Fprintf(os.Stderr, "  1. The nearest \".asmfmt.toml\" walking upward from the formatted file's directory.\n")
+	fmt.Fprintf(os.Stderr, "  2. \"~/.asmfmt.toml\"\n")
+	fmt.Fprintf(os.Stderr, "  3. \"/etc/asmfmt.toml\"\n\n")
+	fmt.Fprintf(os.Stderr, "Examples:\n")
+	fmt.Fprintf(os.Stderr, "  Create a default configuration file in the current directory:\n")
+	fmt.Fprintf(os.Stderr, "    asmfmt -init\n\n")
+	fmt.Fprintf(os.Stderr, "  Format a file in place:\n")
+	fmt.Fprintf(os.Stderr, "    asmfmt -w path/to/file.s\n\n")
+	fmt.Fprintf(os.Stderr, "  Format all assembly files in a directory tree:\n")
+	fmt.Fprintf(os.Stderr, "    asmfmt -w ./...\n\n")
+	fmt.Fprintf(os.Stderr, "  Show diff of formatting changes for a file:\n")
+	fmt.Fprintf(os.Stderr, "    asmfmt -d path/to/file.s\n\n")
+	fmt.Fprintf(os.Stderr, "  Format standard input with a specific configuration:\n")
+	fmt.Fprintf(os.Stderr, "    cat file.s | asmfmt -config /path/to/asmfmt.toml\n")
 	os.Exit(2)
 }
 
@@ -137,6 +157,24 @@ func main() {
 func gofmtMain() {
 	flag.Usage = usage
 	flag.Parse()
+
+	if *initCfg {
+		filename := ".asmfmt.toml"
+		if _, err := os.Stat(filename); err == nil {
+			fmt.Fprintf(os.Stderr, "error: %s already exists in the current directory\n", filename)
+			exitCode = 2
+			return
+		}
+		err := os.WriteFile(filename, asmfmt.DefaultConfigTemplate, 0644)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error writing configuration file: %s\n", err)
+			exitCode = 2
+			return
+		}
+		fmt.Printf("Created default configuration file: %s\n", filename)
+		return
+	}
+
 	resolver, err := newConfigResolver(*config)
 	if err != nil {
 		report(err)

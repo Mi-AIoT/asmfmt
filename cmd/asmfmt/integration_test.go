@@ -117,3 +117,34 @@ func writeFile(t *testing.T, path, contents string) {
 		t.Fatal(err)
 	}
 }
+func TestCLIInitOption(t *testing.T) {
+	root := t.TempDir()
+	
+	// Run -init for the first time
+	_, stderr, err := runCLI(t, root, nil, nil, "-init")
+	if err != nil {
+		t.Fatalf("runCLI -init: %v\nstderr:\n%s", err, stderr)
+	}
+	
+	cfgPath := filepath.Join(root, ".asmfmt.toml")
+	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+		t.Fatal(".asmfmt.toml was not created")
+	}
+	
+	cfgBytes, err := os.ReadFile(cfgPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(cfgBytes) == 0 {
+		t.Fatal(".asmfmt.toml is empty")
+	}
+	
+	// Run -init again - should fail and error out
+	_, stderr2, err2 := runCLI(t, root, nil, nil, "-init")
+	if err2 == nil {
+		t.Fatal("expected -init to fail when .asmfmt.toml already exists")
+	}
+	if !bytes.Contains([]byte(stderr2), []byte("already exists")) {
+		t.Fatalf("expected already exists error, got: %s", stderr2)
+	}
+}

@@ -27,6 +27,9 @@ asmfmt [flags] [path ...]
 
 #### `-config <file>`
 * **Description**: Specifies the path to a TOML configuration file containing formatting rules.
+
+#### `-init`
+* **Description**: Creates a default `.asmfmt.toml` configuration file in the current directory with default settings and comments explaining all options. It reports an error if `.asmfmt.toml` already exists in the current directory to avoid overwriting existing configurations.
 * **Default**: If not specified, `asmfmt` walks upward from the directory of the file being formatted to find the nearest `.asmfmt.toml`. If none is found, it falls back to `~/.asmfmt.toml` or `/etc/asmfmt.toml`.
 
 #### `-w`
