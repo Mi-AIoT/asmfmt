@@ -52,6 +52,11 @@ func FormatWithOptions(in io.Reader, opts Options) ([]byte, error) {
 type fstate struct {
 	out               *bytes.Buffer
 	insideBlock       bool // Block comment
+	blockStandalone   bool
+	blockIndentation  int
+	blockCanonical    bool
+	blockBuffered     bool
+	blockBuffer       []string
 	indentation       int  // Indentation level
 	lastEmpty         bool
 	lastComment       bool
@@ -92,9 +97,66 @@ func (f *fstate) addLine(b []byte) error {
 	if bytes.Contains(b, []byte{0}) {
 		return fmt.Errorf("zero (0) byte in input. file is unlikely an assembler file")
 	}
-	s := string(b)
+	raw := string(b)
+	s := raw
 	// Inside block comment
 	if f.insideBlock {
+		trimmed := strings.TrimSpace(s)
+		if f.blockBuffered {
+			f.blockBuffer = append(f.blockBuffer, s)
+			if strings.Contains(s, "*/") {
+				f.emitBufferedBlockComment()
+			}
+			f.blankLines = 0
+			f.lastEmpty = false
+			f.lastComment = true
+			f.lastBlockComment = true
+			return nil
+		}
+		if f.blockStandalone && f.blockCanonical {
+			defer func() {
+				f.blankLines = 0
+				f.lastEmpty = false
+				f.lastComment = true
+				f.lastBlockComment = true
+			}()
+			if strings.Contains(trimmed, "*/") {
+				f.writeIndentLevel(f.blockIndentation)
+				f.out.WriteString(" */\n")
+				f.insideBlock = false
+				f.blockStandalone = false
+				f.blockCanonical = false
+				return nil
+			}
+			body := strings.TrimSpace(trimBlockCommentLeader(trimmed))
+			f.writeIndentLevel(f.blockIndentation)
+			if body == "" {
+				f.out.WriteString(" *\n")
+			} else {
+				f.out.WriteString(" * " + body + "\n")
+			}
+			return nil
+		}
+		if isDecorativeBlockCommentLine(strings.TrimSpace(s)) {
+			defer func() {
+				f.blankLines = 0
+				f.lastEmpty = false
+				f.lastComment = true
+				f.lastBlockComment = true
+			}()
+			if f.blockStandalone {
+				f.writeIndentLevel(f.blockIndentation)
+				fmt.Fprintln(f.out, trimmed)
+			} else {
+				fmt.Fprintln(f.out, s)
+			}
+			if strings.Contains(s, "*/") {
+				f.insideBlock = false
+				f.blockStandalone = false
+				f.blockCanonical = false
+			}
+			return nil
+		}
 		defer func() {
 			f.blankLines = 0
 			f.lastEmpty = false
@@ -102,6 +164,14 @@ func (f *fstate) addLine(b []byte) error {
 			f.lastBlockComment = true
 		}()
 		if strings.Contains(s, "*/") {
+			if f.blockStandalone && trimmed == "*/" {
+				f.writeIndentLevel(f.blockIndentation)
+				f.out.WriteString("*/\n")
+				f.insideBlock = false
+				f.blockStandalone = false
+				f.blockCanonical = false
+				return nil
+			}
 			ends := strings.Index(s, "*/")
 			end := s[:ends]
 			if strings.HasPrefix(strings.TrimSpace(s), "*") && f.lastStar {
@@ -109,6 +179,8 @@ func (f *fstate) addLine(b []byte) error {
 			}
 			end = end + "*/"
 			f.insideBlock = false
+			f.blockStandalone = false
+			f.blockCanonical = false
 			s = strings.TrimSpace(s[ends+2:])
 			if strings.HasSuffix(s, "\\") {
 				end = end + " \\"
@@ -121,6 +193,20 @@ func (f *fstate) addLine(b []byte) error {
 				return nil
 			}
 		} else {
+			if f.blockStandalone {
+				if strings.HasPrefix(trimmed, "*") {
+					f.writeIndentLevel(f.blockIndentation)
+					f.out.WriteByte(' ')
+					f.out.WriteString(trimmed)
+					f.out.WriteByte('\n')
+					f.lastStar = true
+					return nil
+				}
+				f.writeIndentLevel(f.blockIndentation)
+				fmt.Fprintln(f.out, trimmed)
+				f.lastStar = false
+				return nil
+			}
 			// Insert a space on lines that begin with '*'
 			if strings.HasPrefix(strings.TrimSpace(s), "*") {
 				s = strings.TrimSpace(s)
@@ -180,6 +266,8 @@ func (f *fstate) addLine(b []byte) error {
 		return nil
 	}
 
+	rawIndented := len(raw) > 0 && (raw[0] == ' ' || raw[0] == '\t')
+
 	// Handle end-of blockcomments.
 	if starts := findBlockCommentStart(s); starts >= 0 && !strings.HasSuffix(s, `\`) {
 		ends := strings.Index(s, "*/")
@@ -218,6 +306,18 @@ func (f *fstate) addLine(b []byte) error {
 
 		f.flush()
 
+		if starts == 0 && ends < 0 && isDecorativeBlockCommentLine(strings.TrimSpace(s)) {
+			fmt.Fprintln(f.out, s)
+			f.insideBlock = true
+			f.blockStandalone = rawIndented
+			f.blockIndentation = f.indentation
+			f.blockCanonical = false
+			f.lastComment = true
+			f.lastBlockComment = true
+			f.lastStar = false
+			return nil
+		}
+
 		// Convert single line /* comment */ to // Comment
 		if ends > starts && ends >= len(s)-2 && f.opts.convertSingleLineBlockComment {
 			return f.addLine([]byte(f.preferredCommentMark("//") + f.commentSeparator() + strings.TrimSpace(s[starts+2:ends])))
@@ -230,6 +330,36 @@ func (f *fstate) addLine(b []byte) error {
 		}
 
 		// Otherwise output
+		if starts == 0 && len(pre) == 0 && rawIndented && ends < 0 {
+			f.insideBlock = true
+			f.blockBuffered = true
+			f.blockIndentation = f.indentation
+			f.blockBuffer = []string{raw}
+			f.lastComment = true
+			f.lastBlockComment = true
+			f.lastStar = false
+			return nil
+		}
+		if starts == 0 && len(pre) == 0 {
+			f.blockStandalone = false
+			f.blockCanonical = false
+			fmt.Fprint(f.out, "/*")
+			s = strings.TrimSpace(s[starts+2:])
+			f.insideBlock = ends < 0
+			f.lastComment = true
+			f.lastBlockComment = true
+			f.lastStar = true
+			if len(s) == 0 {
+				f.out.WriteByte('\n')
+				return nil
+			}
+			f.out.WriteByte(' ')
+			f.out.WriteString(s + "\n")
+			return nil
+		} else {
+			f.blockStandalone = false
+			f.blockCanonical = false
+		}
 		fmt.Fprint(f.out, "/*")
 		s = strings.TrimSpace(s[starts+2:])
 		f.insideBlock = ends < 0
@@ -340,7 +470,11 @@ exitcomm:
 		// Add newline before jump targets, but not before GAS directives
 		// used inside an instruction stream.
 		if !st.isGasDirective() {
-			f.newLine(f.opts.newlineBeforeLabels || !st.isLabel())
+			allowNewline := f.opts.newlineBeforeLabels || !st.isLabel()
+			if st.isNumericLocalLabel() {
+				allowNewline = false
+			}
+			f.newLine(allowNewline)
 		}
 
 		if !st.isGasDirective() || st.isGasZeroDirective() {
@@ -388,6 +522,12 @@ exitcomm:
 // indent the current line with current indentation.
 func (f *fstate) indent() {
 	for i := 0; i < f.indentation; i++ {
+		f.writeIndentLevel(1)
+	}
+}
+
+func (f *fstate) writeIndentLevel(level int) {
+	for i := 0; i < level; i++ {
 		if f.opts.indentStyle == "space" {
 			for j := 0; j < f.opts.indentWidth; j++ {
 				f.out.WriteByte(' ')
@@ -396,6 +536,16 @@ func (f *fstate) indent() {
 		}
 		f.out.WriteByte('\t')
 	}
+}
+
+func (f *fstate) indentString(level int) string {
+	if level <= 0 {
+		return ""
+	}
+	if f.opts.indentStyle == "space" {
+		return strings.Repeat(" ", level*f.opts.indentWidth)
+	}
+	return strings.Repeat("\t", level)
 }
 
 // flush any queued comments and commands
@@ -433,6 +583,95 @@ func isMacroBodyText(s string) bool {
 	}
 	head := fields[0]
 	return !strings.HasPrefix(head, ".") && !strings.HasSuffix(head, ":") && !isPreProcessorInstruction(head)
+}
+
+func isDecorativeBlockCommentLine(s string) bool {
+	if s == "" {
+		return false
+	}
+	if strings.HasPrefix(s, "/*") {
+		s = s[2:]
+	}
+	if strings.HasSuffix(s, "*/") {
+		s = s[:len(s)-2]
+	}
+	s = strings.TrimSpace(s)
+	if len(s) < 2 {
+		return false
+	}
+	for _, r := range s {
+		if r != '*' {
+			return false
+		}
+	}
+	return true
+}
+
+func trimBlockCommentLeader(s string) string {
+	s = strings.TrimSpace(s)
+	if strings.HasPrefix(s, "*") {
+		s = strings.TrimSpace(s[1:])
+	}
+	return s
+}
+
+func (f *fstate) emitBufferedBlockComment() {
+	lines := append([]string(nil), f.blockBuffer...)
+	f.blockBuffer = nil
+	f.blockBuffered = false
+	f.insideBlock = false
+
+	canonical := true
+	if len(lines) < 2 {
+		canonical = false
+	}
+	for i, line := range lines[1:] {
+		trimmed := strings.TrimSpace(line)
+		if strings.Contains(trimmed, `\`) {
+			canonical = false
+			break
+		}
+		if i == len(lines)-2 {
+			continue
+		}
+		if trimmed == "" {
+			continue
+		}
+		if strings.HasPrefix(trimmed, "*") {
+			canonical = false
+			break
+		}
+	}
+
+	if !canonical {
+		prefix := f.indentString(f.blockIndentation)
+		for _, line := range lines {
+			fmt.Fprintln(f.out, strings.TrimPrefix(line, prefix))
+		}
+		f.blockStandalone = false
+		f.blockCanonical = false
+		return
+	}
+
+	f.writeIndentLevel(f.blockIndentation)
+	f.out.WriteString("/*\n")
+	for _, line := range lines[1:] {
+		trimmed := strings.TrimSpace(line)
+		if strings.Contains(trimmed, "*/") {
+			f.writeIndentLevel(f.blockIndentation)
+			f.out.WriteString(" */\n")
+			break
+		}
+		body := strings.TrimSpace(trimBlockCommentLeader(trimmed))
+		f.writeIndentLevel(f.blockIndentation)
+		if body == "" {
+			f.out.WriteString(" *\n")
+		} else {
+			f.out.WriteString(" * " + body + "\n")
+		}
+	}
+	f.blockStandalone = false
+	f.blockCanonical = false
 }
 
 func isConservativeUnknownGasDirective(s string) bool {
@@ -680,6 +919,22 @@ func (st statement) isLabel() bool {
 	return strings.HasSuffix(st.instruction, ":")
 }
 
+func (st statement) isNumericLocalLabel() bool {
+	if !st.isLabel() {
+		return false
+	}
+	name := strings.TrimSuffix(st.instruction, ":")
+	if name == "" {
+		return false
+	}
+	for _, r := range name {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
 // isPreProcessor will return if the statement is a preprocessor statement.
 func (st statement) isPreProcessor() bool {
 	return isPreProcessorInstruction(st.instruction)
@@ -717,10 +972,7 @@ func (st statement) isTerminator() bool {
 		return false
 	}
 	switch low {
-	case "jal", "jalr", "tail", "call", "ebreak", "ecall", "mret", "sret", "uret",
-		"beq", "bne", "blt", "bge", "bltu", "bgeu",
-		"beqz", "bnez", "blez", "bgez", "bltz", "bgtz",
-		"bgt", "ble", "bgtu", "bleu":
+	case "j", "jr", "ret", "tail", "ebreak", "ecall", "mret", "sret", "uret":
 		return true
 	default:
 		return false

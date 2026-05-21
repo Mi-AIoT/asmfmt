@@ -33,13 +33,13 @@ base:
 	sw    a2, 4(sp)
 	sd    a3, 8(sp)
 	beq   a0, a1, done
-	bne a0, a1, done
-	blt a0, a1, done
-	bge a0, a1, done
-	bltu a0, a1, done
-	bgeu a0, a1, done
-	jal ra, done
-	jalr zero, 0(ra)
+	bne   a0, a1, done
+	blt   a0, a1, done
+	bge   a0, a1, done
+	bltu  a0, a1, done
+	bgeu  a0, a1, done
+	jal   ra, done
+	jalr  zero, 0(ra)
 	fence iorw, iorw
 	fence.i
 	ecall

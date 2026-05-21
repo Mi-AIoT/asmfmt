@@ -1,0 +1,10 @@
+.text
+.globl branch_indent_regression
+branch_indent_regression:
+    li x5, 1
+    beq x5, x0, 1f
+    csrr x18, mattri0_base
+    csrr x19, mattri0_mask
+    fence
+1:
+    ret

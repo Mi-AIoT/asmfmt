@@ -11,7 +11,6 @@
 foo:
 	addi a0, a0, 1        # increment
 	lui  a1, %hi(msg + 1)
-
 1:
 	auipc a0, %pcrel_hi(msg + 1)
 	ld    a0, %pcrel_lo(1b)(a0)

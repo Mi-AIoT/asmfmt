@@ -3,7 +3,6 @@
 reloc_labels:
 	lui  a0, %hi(symbol + 4)
 	addi a0, a0, %lo(symbol + 4)
-
 1:
 	auipc a1, %pcrel_hi(msg)
 	ld    a1, %pcrel_lo(1b)(a1)

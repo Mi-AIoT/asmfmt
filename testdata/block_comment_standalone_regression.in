@@ -1,0 +1,11 @@
+.text
+.globl block_comment_standalone_regression
+    /*
+    parameters:
+      a0: first value
+
+    returns:
+      a0: result
+    */
+block_comment_standalone_regression:
+    ret

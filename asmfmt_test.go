@@ -255,6 +255,120 @@ addi \reg, \reg, 1; addi \reg, \reg, 2
 	}
 }
 
+func TestRiscvConditionalBranchKeepsIndentedBlock(t *testing.T) {
+	input := `func_label:
+    li x5, 1
+    beq x5, x0, 1f
+    csrr x18, mattri0_base
+    csrr x19, mattri0_mask
+    fence
+1:
+    ret
+`
+	opts := DefaultOptions()
+	opts.IndentStyle = "space"
+	opts.IndentWidth = 4
+	opts.SourceStyle = "riscv-gas"
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `func_label:
+    li   x5, 1
+    beq  x5, x0, 1f
+    csrr x18, mattri0_base
+    csrr x19, mattri0_mask
+    fence
+1:
+    ret
+`
+	if string(got) != want {
+		t.Fatalf("Format branch indentation:\n%s", got)
+	}
+}
+
+func TestRiscvStandaloneCommentsStayInsideIndentedBlock(t *testing.T) {
+	input := `func_label:
+    li x5, 0x100
+    // save control state
+    // VERSION
+    LOAD_UW x20, (x5)
+    bne x20, x15, error
+    // INFO
+    LOAD_UW x24, 4(x5)
+`
+	opts := DefaultOptions()
+	opts.IndentStyle = "space"
+	opts.IndentWidth = 4
+	opts.SourceStyle = "riscv-gas"
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `func_label:
+    li x5, 0x100
+
+    // save control state
+    // VERSION
+    LOAD_UW x20, (x5)
+    bne x20, x15, error
+
+    // INFO
+    LOAD_UW x24, 4(x5)
+`
+	if string(got) != want {
+		t.Fatalf("Format standalone comments:\n%s", got)
+	}
+}
+
+func TestBannerBlockCommentIsPreserved(t *testing.T) {
+	input := `/***************************************************************************************************
+ * banner line
+ **************************************************************************************************/
+`
+	got, err := Format(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != input {
+		t.Fatalf("Format banner block comment:\n%s", got)
+	}
+}
+
+func TestStandaloneBlockCommentIsCanonicalized(t *testing.T) {
+	input := `    /*
+    parameters:
+      a0: first value
+
+    returns:
+      a0: result
+    */
+func_label:
+    ret
+`
+	opts := DefaultOptions()
+	opts.IndentStyle = "space"
+	opts.IndentWidth = 4
+	opts.SourceStyle = "riscv-gas"
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `/*
+ * parameters:
+ * a0: first value
+ *
+ * returns:
+ * a0: result
+ */
+func_label:
+    ret
+`
+	if string(got) != want {
+		t.Fatalf("Format standalone block comment:\n%s", got)
+	}
+}
+
 func TestUnknownDirectivePreservesText(t *testing.T) {
 	input := `.foo a,b,@c # keep spacing
 `
