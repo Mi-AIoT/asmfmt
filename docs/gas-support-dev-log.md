@@ -213,6 +213,6 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - `go vet ./...`
   - `ASMFMT_AS=riscv64-linux-gnu-as ASMFMT_OBJDUMP=riscv64-linux-gnu-objdump ASMFMT_ASFLAGS='-march=rv64gc -mabi=lp64d' go test -run TestOptionalSemanticEquivalence -v ./...`
 - Commit:
-  - pending
+  - `d718f8a` `test: narrow semantic riscv fixture set`
 - Notes:
   - the stable semantic subset is now `riscv_gas.in`, `riscv_csr.in`, and `riscv_instructions_base.in`
