@@ -6,7 +6,7 @@ This document breaks `docs/gas-support-plan.md` into shippable increments that c
 
 - [x] Create an execution checklist.
 - [x] Create a development log.
-- [ ] Keep both documents updated after each landed step.
+- [x] Keep both documents updated after each landed step.
 
 ## Step 1: Lexer Infrastructure
 
@@ -14,18 +14,18 @@ Goal: introduce explicit lexical scanning without changing formatter output for 
 
 Deliverables:
 
-- [ ] Add internal token kinds for identifiers, directives, labels, numbers, strings, chars, comments, separators, operators, and raw text.
-- [ ] Add lexical modes for normal text, string, char, block comment, line comment, and preprocessor line.
-- [ ] Preserve original token spelling for round-tripping.
-- [ ] Add focused lexer unit tests for:
-  - [ ] strings containing comment markers
-  - [ ] escaped quotes
-  - [ ] character constants
-  - [ ] line continuations
-  - [ ] `#` comment versus immediate text
-  - [ ] `@` operand text versus comment-like usage
-  - [ ] `;` separator versus literal text
-- [ ] Keep all current golden files stable.
+- [x] Add internal token kinds for identifiers, directives, labels, numbers, strings, chars, comments, separators, operators, and raw text.
+- [x] Add lexical modes for normal text, string, char, block comment, line comment, and preprocessor line.
+- [x] Preserve original token spelling for round-tripping.
+- [x] Add focused lexer unit tests for:
+  - [x] strings containing comment markers
+  - [x] escaped quotes
+  - [x] character constants
+  - [x] line continuations
+  - [x] `#` comment versus immediate text
+  - [x] `@` operand text versus comment-like usage
+  - [x] `;` separator versus literal text
+- [x] Keep all current golden files stable.
 
 Suggested commit split:
 
