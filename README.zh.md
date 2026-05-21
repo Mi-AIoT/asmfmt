@@ -87,73 +87,27 @@ loop:
 更完整的示例可以看
 [testdata](https://github.com/Mi-AIoT/asmfmt/tree/master/testdata)。
 
-## CLI 用法
+## 命令行用法与配置
 
-```text
-asmfmt [flags] [path ...]
-```
+完整的命令行参考、各选项的详细说明、支持的配置项以及编辑器集成配置，请参阅 [用户手册](docs/user_manual_zh.md)。
 
-常用参数：
-
-* `-w` 直接覆盖原文件
-* `-d` 输出 diff，而不是直接输出格式化后的源码
-* `-l` 输出格式与 `asmfmt` 不一致的文件名
-* `-e` 报告全部错误，而不是在前 10 个不同位置错误后停止
-* `-config` 从指定 TOML 文件加载格式化选项
-
-如果不提供路径，`asmfmt` 会从标准输入读取，并把格式化结果写到标准输出。
-`-w` 不能和标准输入一起使用。
-
-## 配置
-
-`asmfmt` 支持单个 TOML 配置文件。
-
-显式指定配置文件：
+### 基本命令
 
 ```bash
+# 就地格式化文件
+asmfmt -w path/to/file.s
+
+# 使用指定配置文件进行格式化
 asmfmt -config /path/to/asmfmt.toml ./...
 ```
 
-如果没有提供 `-config`，会按以下顺序使用第一份命中的配置：
+### 配置文件查找顺序
 
-1. 从被格式化文件所在目录向上查找最近的 `.asmfmt.toml`
+如果不提供 `-config` 选项，`asmfmt` 会自动按以下顺序查找配置文件：
+
+1. 从被格式化文件所在目录自底向上查找最近的 `.asmfmt.toml` 文件
 2. `~/.asmfmt.toml`
 3. `/etc/asmfmt.toml`
-
-规则：
-
-* 一次只使用一个配置文件。
-* 多份配置不会合并。
-* 未知字段和非法值都会报错。
-* 未设置的字段会保留内置默认值。
-* 对标准输入，除非显式传入 `-config`，否则不会做项目目录查找。
-
-最小示例：
-
-```toml
-indent_style = "space"
-indent_width = 4
-source_style = "riscv-gas"
-align_comments = true
-```
-
-支持的配置项：
-
-* `indent_style`：`tab` 或 `space`。选择使用 tab 缩进或空格缩进。默认值为 `tab`。
-* `indent_width`：正整数。当 `indent_style = "space"` 时每级缩进的空格数。默认值为 `8`。
-* `align_operands`：布尔值。在一组连续指令行之间对齐第一个操作数。默认值为 `true`。
-* `align_comments`：布尔值。对齐行尾注释。在 GAS 风格中，注释对齐列宽仅根据带注释的行计算，以防止没有注释的长指令行破坏对齐。默认值为 `true`。
-* `align_continuations`：布尔值。对齐多行宏体中末尾的 `\` 换行符。默认值为 `true`。
-* `max_blank_lines`：非负整数。保留连续空行的最大数量。默认值为 `1`。
-* `split_semicolon_statements`：布尔值。在允许的风格下将分号分隔的多条语句拆分到单独的行中。默认值为 `true`。
-* `newline_before_comments`：布尔值。在新注释块开头的独立注释行之前插入一个空行。默认值为 `true`。
-* `newline_before_labels`：布尔值。在标签或其他 0 级指令段之前插入一个空行。默认值为 `true`。
-* `labels_always_on_own_line`：布尔值。强制将带有后续指令的内联标签拆分到独立行。默认值为 `true`。
-* `line_comment_space`：布尔值。在注释符后插入一个空格（例如 `// comment`）。默认值为 `true`。
-* `convert_single_line_block_comment`：布尔值。在安全的情况下将单行块注释转换为普通的行注释（例如 `/* comment */` 转换为 `// comment`）。默认值为 `true`。
-* `preferred_comment_style`：`preserve` 或 `slash`。规定格式化输出注释标志。`preserve` 保持原始标志（`#`、`@`、`//`）；`slash` 规范化为 `//`。默认值为 `preserve`。
-* `source_style`：`auto`、`plan9`、`gas` 或 `riscv-gas`。强制指定源文件格式风格或自动检测。默认值为 `auto`。
-* `indent_gas_directives`：布尔值。是否将零缩进的 GAS directive（如 `.global`、`.type`、`.word`）缩进到当前的指令/宏级别。默认值为 `false`。
 
 完整注释版配置参考见 [.asmfmt.toml.example](.asmfmt.toml.example)。
 
@@ -267,56 +221,3 @@ go test -run TestRewrite -update
 ```
 
 更聚焦的回归命令和贡献流程细节见 [AGENTS.md](AGENTS.md)。
-
-## 编辑器集成
-
-### GoLand
-
-可以配置一个自定义 File Watcher：
-
-* `Settings -> Tools -> File Watchers`
-* 创建一个名为 `asmfmt` 的 `<custom>` watcher
-* `File Type`：`x86 Plan 9 Assembly file`
-* `Scope`：`Project Files`
-* `Arguments`：`$FilePath$`
-* `Output Paths to Refresh`：`$FilePath$`
-* `Working Directory`：`$ProjectFileDir$`
-
-启用：
-
-* `Trigger the watcher regardless of syntax errors`
-* `Create output file from stdout`
-
-其余高级选项关闭即可。
-
-![Goland Configuration](https://user-images.githubusercontent.com/5663952/114158973-96eebc80-9925-11eb-9aea-703ce474a7bb.png)
-
-### Emacs
-
-如果希望在保存时自动格式化汇编文件：
-
-```elisp
-(defun asm-mode-setup ()
-  (set (make-local-variable 'gofmt-command) "asmfmt")
-  (add-hook 'before-save-hook 'gofmt nil t)
-)
-
-(add-hook 'asm-mode-hook 'asm-mode-setup)
-```
-
-## Source style 差异
-
-`asmfmt` 可以自动检测源码风格，也可以通过 `.asmfmt.toml` 里的
-`source_style` 强制指定。
-
-当前几种风格模式的主要差异在于注释处理、分号拆分和语法检测：
-
-| 风格 | 典型输入 | 注释处理 | 分号拆分 | 检测线索 | 说明 |
-| --- | --- | --- | --- | --- | --- |
-| `plan9` | Go / Plan 9 汇编 | `//` 会被当作行注释。`#` 不会被当作注释起始符。`@` 行注释关闭。 | 关闭。`；` 不会被当作普通语句分隔符处理。 | `(SB)`、`(FP)`、`(PC)`、`(SP)` 以及大写指令形式通常会识别为 Plan 9 风格。 | 适合传统 Go 汇编源码。 |
-| `gas` | 通用 GAS 风格汇编 | `//` 和 `#` 会被当作行注释。在 GAS 风格输入中，`@` 处于注释位置时也会被识别为行注释。 | 当输入看起来像 GAS 指令或 directive 语法时启用。 | `.section` 这类点号 directive 和小写指令形式通常会识别为 GAS 风格。 | 适合不依赖 RISC-V 特定检测的 ELF/GAS 汇编。 |
-| `riscv-gas` | 使用 GAS 语法的 RISC-V 汇编 | 注释行为与 `gas` 相同。 | 分号处理与 `gas` 大体相同。 | `%hi(...)`、`%lo(...)`、`%pcrel_hi(...)`、`%pcrel_lo(...)`、`.option`、`.attribute`、`.insn`、`R_RISCV_...` 以及常见 RISC-V 寄存器名会把检测提升为 `riscv-gas`。 | 这是一个偏向 RISC-V 的 GAS 子模式，检测和语法覆盖更强。 |
-| `auto` | 混合或未知输入 | 使用检测出来的风格处理注释。 | 使用检测出来的风格决定是否拆分语句。 | 初始比较保守，随着文件中出现的语法特征逐步升级判断。 | 如果代码库风格一致、又想少配配置项，推荐使用。 |
-
-如果代码库里混用了多种风格，但你又需要可预测的稳定结果，建议显式设置
-`source_style`，而不是依赖自动检测。

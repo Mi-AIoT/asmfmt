@@ -90,75 +90,29 @@ loop:
 For larger examples, see
 [testdata](https://github.com/Mi-AIoT/asmfmt/tree/master/testdata).
 
-## CLI usage
+## CLI Usage & Configuration
 
-```text
-asmfmt [flags] [path ...]
-```
+For the full CLI reference, detailed option explanations, configuration keys, and editor integration setup, please refer to the [User Manual](docs/user_manual.md).
 
-Common flags:
-
-* `-w` overwrite files in place
-* `-d` print a diff instead of rewritten source
-* `-l` print files whose formatting differs
-* `-e` report all errors instead of stopping after the first 10
-* `-config` load formatting options from a specific TOML file
-
-If no path is provided, `asmfmt` reads from standard input and writes the
-formatted result to standard output. `-w` cannot be used with standard input.
-
-## Configuration
-
-`asmfmt` supports a single TOML configuration file.
-
-Load a config explicitly:
+### Basic Command
 
 ```bash
+# Format a file in place
+asmfmt -w path/to/file.s
+
+# Format with a specific configuration
 asmfmt -config /path/to/asmfmt.toml ./...
 ```
 
-If `-config` is not provided, the first matching config is used in this order:
+### Config Discovery
 
-1. The nearest `.asmfmt.toml` found by walking upward from the formatted file's directory
+`asmfmt` automatically searches for a configuration file in the following order:
+
+1. The nearest `.asmfmt.toml` walking upward from the directory of the file being formatted.
 2. `~/.asmfmt.toml`
 3. `/etc/asmfmt.toml`
 
-Rules:
-
-* Only one config file is used.
-* Config files are not merged.
-* Unknown fields and invalid values are errors.
-* Unset fields keep the built-in defaults.
-* For standard input, project-directory lookup is skipped unless `-config` is provided.
-
-Minimal example:
-
-```toml
-indent_style = "space"
-indent_width = 4
-source_style = "riscv-gas"
-align_comments = true
-```
-
-Supported config keys:
-
-* `indent_style`: `tab` or `space`. Choose between tab indentation or spaces. Default is `tab`.
-* `indent_width`: positive integer. Number of spaces per indentation level when `indent_style = "space"`. Default is `8`.
-* `align_operands`: boolean. Align the first operand across a block of instruction lines. Default is `true`.
-* `align_comments`: boolean. Align end-of-line comments across a block. In GAS style, comment alignment column is calculated only from lines with comments to prevent long comment-less instructions from throwing off alignment. Default is `true`.
-* `align_continuations`: boolean. Align trailing `\` continuation markers in multiline macro bodies. Default is `true`.
-* `max_blank_lines`: non-negative integer. Maximum number of consecutive blank lines to keep. Default is `1`.
-* `split_semicolon_statements`: boolean. Split semicolon-separated statements onto separate lines where the style permits. Default is `true`.
-* `newline_before_comments`: boolean. Insert a blank line before standalone comment lines starting a new comment block. Default is `true`.
-* `newline_before_labels`: boolean. Insert a blank line before labels or other level-0 entries. Default is `true`.
-* `labels_always_on_own_line`: boolean. Force labels onto their own line when they have trailing instructions on the same line. Default is `true`.
-* `line_comment_space`: boolean. Insert a space after comment markers (e.g. `// comment`). Default is `true`.
-* `convert_single_line_block_comment`: boolean. Convert a single-line block comment into a line comment (e.g. `/* comment */` to `// comment`) when safe. Default is `true`.
-* `preferred_comment_style`: `preserve` or `slash`. Choose how line comments should be written. `preserve` keeps the original marker (`#`, `@`, `//`); `slash` normalizes to `//`. Default is `preserve`.
-* `source_style`: `auto`, `plan9`, `gas`, or `riscv-gas`. Force a specific source format or detect automatically. Default is `auto`.
-* `indent_gas_directives`: boolean. Indent zero-indent GAS directives (like `.global`, `.type`, `.word`) to the instruction/macro level. Default is `false`.
-
-See [.asmfmt.toml.example](.asmfmt.toml.example) for a fully commented reference.
+For a fully commented configuration template, see [.asmfmt.toml.example](.asmfmt.toml.example).
 
 ## Supported syntax
 
@@ -276,57 +230,3 @@ go test -run TestRewrite -update
 
 More focused regression commands and contribution workflow details are described
 in [AGENTS.md](AGENTS.md).
-
-## Editor integration
-
-### GoLand
-
-You can set up a custom File Watcher:
-
-* `Settings -> Tools -> File Watchers`
-* create a `<custom>` watcher named `asmfmt`
-* `File Type`: `x86 Plan 9 Assembly file`
-* `Scope`: `Project Files`
-* `Arguments`: `$FilePath$`
-* `Output Paths to Refresh`: `$FilePath$`
-* `Working Directory`: `$ProjectFileDir$`
-
-Enable:
-
-* `Trigger the watcher regardless of syntax errors`
-* `Create output file from stdout`
-
-Disable the remaining advanced options.
-
-![Goland Configuration](https://user-images.githubusercontent.com/5663952/114158973-96eebc80-9925-11eb-9aea-703ce474a7bb.png)
-
-### Emacs
-
-To format assembler files on save:
-
-```elisp
-(defun asm-mode-setup ()
-  (set (make-local-variable 'gofmt-command) "asmfmt")
-  (add-hook 'before-save-hook 'gofmt nil t)
-)
-
-(add-hook 'asm-mode-hook 'asm-mode-setup)
-```
-
-## Source style differences
-
-`asmfmt` can auto-detect source style, or you can force it with
-`source_style` in `.asmfmt.toml`.
-
-The current style modes differ mainly in comment handling, statement splitting,
-and syntax detection:
-
-| Style | Typical input | Comment handling | Semicolon splitting | Detection hints | Notes |
-| --- | --- | --- | --- | --- | --- |
-| `plan9` | Go / Plan 9 assembly | `//` is treated as a line comment. `#` is not treated as a comment marker. `@` line comments are disabled. | Disabled. `;` is not treated as a normal statement separator. | `(SB)`, `(FP)`, `(PC)`, `(SP)`, and uppercase instruction forms tend to identify Plan 9 style. | Best for traditional Go assembler sources. |
-| `gas` | Generic GAS-style assembly | `//` and `#` are treated as line comments. `@` line comments are also supported in GAS-like input when used in comment position. | Enabled where the input looks like GAS instruction or directive syntax. | Dot-directives such as `.section` and lowercase instruction forms tend to identify GAS style. | Best for non-Go ELF/GAS assembly that does not need RISC-V-specific detection. |
-| `riscv-gas` | RISC-V assembly using GAS syntax | Same comment behavior as `gas`. | Same general semicolon behavior as `gas`. | RISC-V-specific forms such as `%hi(...)`, `%lo(...)`, `%pcrel_hi(...)`, `%pcrel_lo(...)`, `.option`, `.attribute`, `.insn`, `R_RISCV_...`, and common RISC-V register names promote detection to `riscv-gas`. | This is a GAS sub-mode with stronger RISC-V-oriented detection and syntax coverage. |
-| `auto` | Mixed or unknown input | Uses the detected style for comment parsing. | Uses the detected style for statement splitting. | Starts conservative, then upgrades based on syntax seen in the file. | Recommended when your codebase is consistent and you want minimal configuration. |
-
-If a mixed codebase needs deterministic results, prefer setting
-`source_style` explicitly instead of relying on auto-detection.
