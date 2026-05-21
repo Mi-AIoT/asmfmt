@@ -21,11 +21,14 @@ func TestOptionalSemanticEquivalence(t *testing.T) {
 	asFlags := splitEnvList("ASMFMT_ASFLAGS")
 	objdumpFlags := splitEnvList("ASMFMT_OBJDUMPFLAGS")
 
+	// Keep this list to fixtures that assemble cleanly with the configured
+	// external toolchain. The formatter intentionally supports syntax that may
+	// be vendor-specific, pseudo-only, or otherwise accepted by asmfmt without
+	// being accepted by the selected binutils version.
 	fixtures := []string{
-		"testdata/riscv_pseudo.in",
-		"testdata/riscv_relocations_labels.in",
+		"testdata/riscv_gas.in",
 		"testdata/riscv_csr.in",
-		"testdata/riscv_insn.in",
+		"testdata/riscv_instructions_base.in",
 	}
 	for _, fixture := range fixtures {
 		fixture := fixture

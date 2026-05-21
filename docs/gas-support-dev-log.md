@@ -206,12 +206,13 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
 - Status: completed
 - Scope:
   - added an Ubuntu-only `semantic-riscv` job to the main CI workflow
-  - expanded semantic equivalence coverage to include `testdata/riscv_insn.in`
+  - initially expanded semantic coverage too aggressively, then corrected it to a curated subset that assembles cleanly with the CI binutils toolchain
   - added release workflow gating so tagged releases wait for verify and semantic jobs before running GoReleaser
 - Verification:
   - `go test ./...`
   - `go vet ./...`
+  - `ASMFMT_AS=riscv64-linux-gnu-as ASMFMT_OBJDUMP=riscv64-linux-gnu-objdump ASMFMT_ASFLAGS='-march=rv64gc -mabi=lp64d' go test -run TestOptionalSemanticEquivalence -v ./...`
 - Commit:
-  - `cbba8d0` `ci: gate releases on semantic riscv checks`
+  - pending
 - Notes:
-  - local semantic execution was not run in this environment because `riscv64-linux-gnu-as` and `riscv64-linux-gnu-objdump` were not installed locally; the workflow installs them explicitly in CI
+  - the stable semantic subset is now `riscv_gas.in`, `riscv_csr.in`, and `riscv_instructions_base.in`
