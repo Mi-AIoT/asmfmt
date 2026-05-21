@@ -104,3 +104,10 @@ preferred_comment_style = "preserve"
 # This affects comment parsing, semicolon splitting, and instruction-stream
 # handling for lowercase mnemonics.
 source_style = "auto"
+
+# Indent GAS zero-indent directives (e.g. .global, .type, .word, .byte, .section)
+# to follow the instruction/function indentation level:
+#   true  - indent directives by 1 tab (or block/macro level inside blocks)
+#   false - keep directives at level 0 (unless inside a block/macro)
+# Default: false
+#indent_gas_directives = false

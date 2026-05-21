@@ -461,10 +461,18 @@ exitcomm:
 		if st.isTEXT() && len(f.queued) == 0 && len(f.comments) > 0 {
 			f.indentation = 0
 		}
+		if st.isGasBlockStart() || st.isGasBlockMiddle() {
+			f.flush()
+			f.indentation = f.gasBlock
+		}
 		prevIndentation := f.indentation
 		f.flush()
 		if st.isGasZeroDirective() {
-			f.indentation = f.gasBlock
+			if f.opts.indentGASDirectives {
+				f.indentation = f.instructionIndentation()
+			} else {
+				f.indentation = f.gasBlock
+			}
 		}
 
 		// Add newline before jump targets, but not before GAS directives
@@ -480,7 +488,11 @@ exitcomm:
 		if !st.isGasDirective() {
 			f.indentation = 0
 		} else if st.isGasZeroDirective() {
-			f.indentation = f.gasBlock
+			if f.opts.indentGASDirectives {
+				f.indentation = f.instructionIndentation()
+			} else {
+				f.indentation = f.gasBlock
+			}
 		}
 		f.queued = append(f.queued, *st)
 		f.flush()
@@ -489,7 +501,9 @@ exitcomm:
 			f.gasBlock++
 			f.indentation = f.gasBlock
 		} else if st.isGasDirective() {
-			if st.isGasZeroDirective() {
+			if f.opts.indentGASDirectives && st.isGasZeroDirective() {
+				f.indentation = f.instructionIndentation()
+			} else if st.isGasZeroDirective() {
 				f.indentation = prevIndentation
 			} else {
 				f.indentation = f.gasBlock
@@ -519,6 +533,13 @@ exitcomm:
 	}
 	f.lastContinued = st.continued
 	return nil
+}
+
+func (f *fstate) instructionIndentation() int {
+	if f.gasBlock > 0 {
+		return f.gasBlock
+	}
+	return 1
 }
 
 // indent the current line with current indentation.

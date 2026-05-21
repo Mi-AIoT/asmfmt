@@ -156,6 +156,7 @@ Supported config keys:
 * `convert_single_line_block_comment`
 * `preferred_comment_style`: `preserve` or `slash`
 * `source_style`: `auto`, `plan9`, `gas`, or `riscv-gas`
+* `indent_gas_directives`: boolean, whether to indent zero-indent GAS directives to the instruction level. Default is `false`.
 
 See [.asmfmt.toml.example](.asmfmt.toml.example) for a fully commented reference.
 

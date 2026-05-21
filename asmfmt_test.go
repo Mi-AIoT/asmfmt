@@ -566,3 +566,17 @@ func TestMacroAndLabelIndentation(t *testing.T) {
 		t.Fatalf("Format macro directive indentation got:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestFormatWithOptionsIndentGASDirectives(t *testing.T) {
+	input := "foo:\n.global bar\n.type bar, @function\n\taddi a0, a0, 1\n.macro mymacro\n.word 42\n.endm\n"
+	opts := DefaultOptions()
+	opts.IndentGASDirectives = true
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "foo:\n\t.global bar\n\t.type bar, @function\n\taddi a0, a0, 1\n.macro mymacro\n\t.word 42\n.endm\n"
+	if string(got) != want {
+		t.Fatalf("FormatWithOptionsIndentGASDirectives got:\n%s\nwant:\n%s", got, want)
+	}
+}

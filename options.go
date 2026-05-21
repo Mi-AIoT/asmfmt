@@ -24,6 +24,7 @@ type Options struct {
 	ConvertSingleLineBlockComment bool   `toml:"convert_single_line_block_comment"`
 	PreferredCommentStyle         string `toml:"preferred_comment_style"`
 	SourceStyle                   string `toml:"source_style"`
+	IndentGASDirectives           bool   `toml:"indent_gas_directives"`
 }
 
 type normalizedOptions struct {
@@ -41,6 +42,7 @@ type normalizedOptions struct {
 	convertSingleLineBlockComment bool
 	preferredCommentStyle         string
 	sourceStyle                   sourceStyle
+	indentGASDirectives           bool
 }
 
 // DefaultOptions returns the formatter defaults used when no config is loaded.
@@ -60,6 +62,7 @@ func DefaultOptions() Options {
 		ConvertSingleLineBlockComment: true,
 		PreferredCommentStyle:         "preserve",
 		SourceStyle:                   "auto",
+		IndentGASDirectives:           false,
 	}
 }
 
@@ -111,6 +114,7 @@ func (o Options) normalize() (normalizedOptions, error) {
 		lineCommentSpace:              o.LineCommentSpace,
 		convertSingleLineBlockComment: o.ConvertSingleLineBlockComment,
 		preferredCommentStyle:         o.PreferredCommentStyle,
+		indentGASDirectives:           o.IndentGASDirectives,
 	}
 	switch o.IndentStyle {
 	case "tab", "space":
