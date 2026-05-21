@@ -72,6 +72,14 @@ jobs:
         version: '~> v2'
         args: release --snapshot --clean
 
+    - name: Upload snapshot artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: asmfmt-snapshot-${{ github.sha }}
+        path: dist/*
+        if-no-files-found: error
+        retention-days: 14
+
   semantic-riscv:
     runs-on: ubuntu-latest
     env:
