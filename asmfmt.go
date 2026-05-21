@@ -464,7 +464,7 @@ exitcomm:
 		prevIndentation := f.indentation
 		f.flush()
 		if st.isGasZeroDirective() {
-			f.indentation = 0
+			f.indentation = f.gasBlock
 		}
 
 		// Add newline before jump targets, but not before GAS directives
@@ -477,8 +477,10 @@ exitcomm:
 			f.newLine(allowNewline)
 		}
 
-		if !st.isGasDirective() || st.isGasZeroDirective() {
+		if !st.isGasDirective() {
 			f.indentation = 0
+		} else if st.isGasZeroDirective() {
+			f.indentation = f.gasBlock
 		}
 		f.queued = append(f.queued, *st)
 		f.flush()

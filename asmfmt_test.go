@@ -546,3 +546,23 @@ func TestFormatWithOptionsForceGasStyle(t *testing.T) {
 		t.Fatalf("FormatWithOptions forced gas:\n%s", got)
 	}
 }
+
+func TestMacroAndLabelIndentation(t *testing.T) {
+	input := `.macro STL_GLOBAL_FUNC x
+	.global \x
+	.type \x, %function
+.endm
+`
+	got, err := Format(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `.macro STL_GLOBAL_FUNC x
+	.global \x
+	.type \x, %function
+.endm
+`
+	if string(got) != want {
+		t.Fatalf("Format macro directive indentation got:\n%s\nwant:\n%s", got, want)
+	}
+}

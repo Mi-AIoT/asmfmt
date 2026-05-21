@@ -2,7 +2,7 @@
 	addi \reg, \tmp, 1; addi \reg, \reg, 2
 	.if \tmp
 		.rept 2
-.word \reg
+			.word \reg
 		.endr
 	.endif
 .endm
@@ -13,9 +13,9 @@
 
 label&\name:
 	.ascii "%name"
-.long %(\name + 4)
+	.long %(\name + 4)
 	.irp arg, \tail
-.word \arg
+		.word \arg
 	.endr
 .endm
 .noaltmacro

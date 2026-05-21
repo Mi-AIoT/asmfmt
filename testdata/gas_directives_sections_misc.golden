@@ -7,5 +7,5 @@
 .sbttl "sub"
 
 .struct 0
-.offset 8
+	.offset 8
 .endstruct

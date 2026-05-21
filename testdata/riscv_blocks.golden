@@ -10,7 +10,7 @@
 	addi \reg, \reg, 1
 .endr
 .irpc ch, abc
-.byte '\ch'
+	.byte '\ch'
 .endr
 .rept 2
 	nop
