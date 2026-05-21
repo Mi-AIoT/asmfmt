@@ -580,3 +580,16 @@ func TestFormatWithOptionsIndentGASDirectives(t *testing.T) {
 		t.Fatalf("FormatWithOptionsIndentGASDirectives got:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestPreProcessorIndentation(t *testing.T) {
+	input := "foo:\n#if __riscv_xlen == 32\n\tsw x14, (a3)\n#else\n\tfmv.d.x f0, x14\n#endif\n\tret\n"
+	opts := DefaultOptions()
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "foo:\n#if __riscv_xlen == 32\n\tsw x14, (a3)\n\n#else\n\tfmv.d.x f0, x14\n\n#endif\n\tret\n"
+	if string(got) != want {
+		t.Fatalf("TestPreProcessorIndentation got:\n%s\nwant:\n%s", got, want)
+	}
+}

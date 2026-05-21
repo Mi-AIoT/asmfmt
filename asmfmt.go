@@ -508,7 +508,9 @@ exitcomm:
 			} else {
 				f.indentation = f.gasBlock
 			}
-		} else if !st.isPreProcessor() && !st.isGlobal() {
+		} else if st.isPreProcessor() {
+			f.indentation = prevIndentation
+		} else if !st.isGlobal() {
 			f.indentation = 1
 		}
 		f.lastLabel = true
