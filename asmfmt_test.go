@@ -221,3 +221,32 @@ ret
 		t.Fatalf("Format block indentation:\n%s", got)
 	}
 }
+
+func TestMacroVarargMerging(t *testing.T) {
+	st := newStatement(`.macro forward head, tail:vararg, 1, 2`, nil)
+	if st == nil {
+		t.Fatal("newStatement returned nil")
+	}
+	want := []string{"forward head", "tail:vararg, 1, 2"}
+	if strings.Join(st.params, "|") != strings.Join(want, "|") {
+		t.Fatalf("macro params = %#v; want %#v", st.params, want)
+	}
+}
+
+func TestMacroBodyPreservesSemicolons(t *testing.T) {
+	input := `.macro wrap reg
+addi \reg, \reg, 1; addi \reg, \reg, 2
+.endm
+`
+	want := `.macro wrap reg
+	addi \reg, \reg, 1; addi \reg, \reg, 2
+.endm
+`
+	got, err := Format(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != want {
+		t.Fatalf("Format macro body:\n%s", got)
+	}
+}

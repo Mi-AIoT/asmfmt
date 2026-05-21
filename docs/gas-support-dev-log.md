@@ -29,6 +29,24 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - `go test ./...`
   - `go vet ./...`
 - Commit:
-  - pending
+  - `406226d` `refactor: add gas lexer scaffolding`
 - Notes:
   - lexer is intentionally introduced as independent infrastructure first; formatter integration will proceed only in behavior-preserving slices
+
+### Step 2: Macro and Altmacro Handling
+
+- Status: completed
+- Scope:
+  - tracked `.macro`/`.endm` and `.altmacro`/`.noaltmacro` formatter state explicitly
+  - preserved ordinary macro body lines as raw text so commas, semicolons, concatenation markers, and inline comments are not reinterpreted
+  - merged `.macro` header text from the first `:vararg` parameter onward so comma-bearing vararg tails stay intact
+  - added unit coverage for vararg header preservation and macro-body semicolon preservation
+  - added `testdata/gas_macros.in` / `.golden` for default args, required args, varargs, nested `.if`, nested `.rept`, and altmacro-sensitive text
+- Verification:
+  - `go test -run TestRewrite -update`
+  - `go test ./...`
+  - `go vet ./...`
+- Commit:
+  - pending
+- Notes:
+  - `testdata/riscv_gas.golden` intentionally changed inside a macro body: `lui  \reg, ...` became `lui \reg, ...` because macro body instructions are now preserved instead of alignment-normalized

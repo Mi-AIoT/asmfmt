@@ -39,23 +39,23 @@ Goal: preserve GAS macro semantics while continuing to normalize only safe top-l
 
 Deliverables:
 
-- [ ] Track `.macro` body state until `.endm`.
-- [ ] Parse macro headers conservatively:
-  - [ ] positional parameters
-  - [ ] `name=default`
-  - [ ] `name:req`
-  - [ ] `name:vararg`
-  - [ ] empty default values
-- [ ] Track `.altmacro` / `.noaltmacro`.
-- [ ] Preserve altmacro-sensitive text:
-  - [ ] `\name`
-  - [ ] `\()`
-  - [ ] `&` concatenation
-  - [ ] `%expr`
-  - [ ] `LOCAL name`
-- [ ] Preserve varargs containing commas.
-- [ ] Preserve continuation lines and comments inside macro bodies.
-- [ ] Add fixtures for default args, required args, varargs, nested `.if`, nested `.rept`, and `.altmacro` cases.
+- [x] Track `.macro` body state until `.endm`.
+- [x] Parse macro headers conservatively:
+  - [x] positional parameters
+  - [x] `name=default`
+  - [x] `name:req`
+  - [x] `name:vararg`
+  - [x] empty default values
+- [x] Track `.altmacro` / `.noaltmacro`.
+- [x] Preserve altmacro-sensitive text:
+  - [x] `\name`
+  - [x] `\()`
+  - [x] `&` concatenation
+  - [x] `%expr`
+  - [x] `LOCAL name`
+- [x] Preserve varargs containing commas.
+- [x] Preserve continuation lines and comments inside macro bodies.
+- [x] Add fixtures for default args, required args, varargs, nested `.if`, nested `.rept`, and `.altmacro` cases.
 
 Suggested commit split:
 

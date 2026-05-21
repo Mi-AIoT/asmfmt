@@ -5,7 +5,7 @@
 .type foo, @function
 .attribute arch, "rv64imafdc"
 .macro load_addr reg, sym
-	lui  \reg, %hi(\sym)
+	lui \reg, %hi(\sym)
 	addi \reg, \reg, %lo(\sym) # macro relocation
 .endm
 foo:

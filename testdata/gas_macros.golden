@@ -1,0 +1,21 @@
+.macro load reg=, tmp:req, vals:vararg
+	addi \reg, \tmp, 1; addi \reg, \reg, 2
+	.if \tmp
+		.rept 2
+.word \reg
+		.endr
+	.endif
+.endm
+
+.altmacro
+.macro build name=foo, tail:vararg, 1, 2
+	LOCAL local\@
+
+label&\name:
+	.ascii "%name"
+.long %(\name + 4)
+	.irp arg, \tail
+.word \arg
+	.endr
+.endm
+.noaltmacro

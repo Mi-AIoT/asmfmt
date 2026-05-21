@@ -44,6 +44,8 @@ type fstate struct {
 	anyContents   bool
 	lastContinued bool // Last line continued
 	gasBlock      int
+	inMacro       bool
+	altMacro      bool
 	queued        []statement
 	comments      []string
 	defines       map[string]struct{}
@@ -228,7 +230,7 @@ exitcomm:
 		return f.out.WriteByte('\n')
 	}
 
-	if shouldSplitSemicolonStatements(s) {
+	if !f.inMacro && shouldSplitSemicolonStatements(s) {
 		parts := splitStatements(s)
 		if len(parts) > 1 {
 			for _, part := range parts {
@@ -248,10 +250,16 @@ exitcomm:
 		f.lastComment = false
 	}()
 
-	st := newStatement(s, f.defines)
+	var st *statement
+	if f.inMacro && isMacroBodyText(s) {
+		st = &statement{instruction: s, function: true}
+	} else {
+		st = newStatement(s, f.defines)
+	}
 	if st == nil {
 		return nil
 	}
+	defer f.updateMacroState(*st)
 	if def := st.define(); def != "" {
 		f.defines[def] = struct{}{}
 	}
@@ -357,6 +365,28 @@ func (f *fstate) flush() {
 		fmt.Fprintln(f.out, line)
 	}
 	f.queued = nil
+}
+
+func (f *fstate) updateMacroState(st statement) {
+	switch st.instruction {
+	case ".macro":
+		f.inMacro = true
+	case ".endm":
+		f.inMacro = false
+	case ".altmacro":
+		f.altMacro = true
+	case ".noaltmacro":
+		f.altMacro = false
+	}
+}
+
+func isMacroBodyText(s string) bool {
+	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return false
+	}
+	head := fields[0]
+	return !strings.HasPrefix(head, ".") && !strings.HasSuffix(head, ":") && !isPreProcessorInstruction(head)
 }
 
 // Add a newline, unless last line was empty or a comment
@@ -540,6 +570,23 @@ func (st *statement) setParams(s string) {
 	if len(c) > 0 {
 		st.params = append(st.params, c)
 	}
+	if st.instruction == ".macro" {
+		st.params = mergeMacroVarargParams(st.params)
+	}
+}
+
+func mergeMacroVarargParams(params []string) []string {
+	for i, p := range params {
+		if strings.Contains(p, ":vararg") {
+			if i == len(params)-1 {
+				return params
+			}
+			merged := append([]string{}, params[:i]...)
+			merged = append(merged, strings.Join(params[i:], ", "))
+			return merged
+		}
+	}
+	return params
 }
 
 // Return true if this line should be at indentation level 0.
