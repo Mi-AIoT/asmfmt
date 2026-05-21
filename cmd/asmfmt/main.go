@@ -37,7 +37,7 @@ var (
 	showVersion = flag.Bool("version", false, "print version information and exit")
 
 	// debugging
-	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to this file")
+	cpuprofile = flag.String("cpuprofile", "", "write CPU profile to file (primarily for debugging and performance analysis)")
 )
 
 const (

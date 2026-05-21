@@ -66,7 +66,7 @@ When running `asmfmt -h` or `asmfmt --help`, the tool prints version information
   ```
 
 #### `-cpuprofile <file>`
-* **Description**: Outputs CPU profiling data to the specified file. Mainly used for performance tuning when formatting large sets of files.
+* **Description**: Outputs CPU profiling data to the specified file. This is an advanced flag primarily intended for developer performance tuning and debugging when formatting very large sets of files.
 
 #### `-version`
 * **Description**: Prints version information (version number, git commit hash, and build time) and exits.
