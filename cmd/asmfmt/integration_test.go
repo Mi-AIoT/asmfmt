@@ -148,3 +148,24 @@ func TestCLIInitOption(t *testing.T) {
 		t.Fatalf("expected already exists error, got: %s", stderr2)
 	}
 }
+func TestCLIVersionOption(t *testing.T) {
+	root := t.TempDir()
+	
+	stdout, stderr, err := runCLI(t, root, nil, nil, "-version")
+	if err != nil {
+		t.Fatalf("runCLI -version: %v\nstderr:\n%s", err, stderr)
+	}
+	
+	if !bytes.Contains([]byte(stdout), []byte("version:")) {
+		t.Fatalf("expected stdout to contain version:, got: %s", stdout)
+	}
+	if !bytes.Contains([]byte(stdout), []byte("git hash:")) {
+		t.Fatalf("expected stdout to contain git hash:, got: %s", stdout)
+	}
+	if !bytes.Contains([]byte(stdout), []byte("build time:")) {
+		t.Fatalf("expected stdout to contain build time:, got: %s", stdout)
+	}
+	if stderr != "" {
+		t.Fatalf("unexpected stderr: %q", stderr)
+	}
+}

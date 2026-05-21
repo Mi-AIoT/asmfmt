@@ -13,10 +13,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime/debug"
 	"runtime/pprof"
 	"strings"
 
 	"github.com/klauspost/asmfmt"
+)
+
+var (
+	version   = "devel"
+	buildTime = "unknown"
+	gitHash   = "unknown"
 )
 
 var (
@@ -27,6 +34,7 @@ var (
 	allErrors = flag.Bool("e", false, "report all errors (not just the first 10 on different lines)")
 	config    = flag.String("config", "", "read formatting options from this TOML file")
 	initCfg   = flag.Bool("init", false, "create a default .asmfmt.toml configuration file in the current directory")
+	showVersion = flag.Bool("version", false, "print version information and exit")
 
 	// debugging
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to this file")
@@ -50,6 +58,28 @@ func report(err error) {
 	exitCode = 2
 }
 
+func initVersion() {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			switch setting.Key {
+			case "vcs.revision":
+				if gitHash == "unknown" && setting.Value != "" {
+					gitHash = setting.Value
+				}
+			case "vcs.time":
+				if buildTime == "unknown" && setting.Value != "" {
+					buildTime = setting.Value
+				}
+			}
+		}
+		if info.Main.Version != "" && info.Main.Version != "(devel)" {
+			if version == "devel" {
+				version = info.Main.Version
+			}
+		}
+	}
+}
+
 func usage() {
 	fmt.Fprintf(os.Stderr, "usage: asmfmt [flags] [path ...]\n\n")
 	fmt.Fprintf(os.Stderr, "asmfmt formats Go/Plan 9, GAS, and RISC-V assembly source files.\n")
@@ -62,6 +92,8 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "  2. \"~/.asmfmt.toml\"\n")
 	fmt.Fprintf(os.Stderr, "  3. \"/etc/asmfmt.toml\"\n\n")
 	fmt.Fprintf(os.Stderr, "Examples:\n")
+	fmt.Fprintf(os.Stderr, "  Print version information:\n")
+	fmt.Fprintf(os.Stderr, "    asmfmt -version\n\n")
 	fmt.Fprintf(os.Stderr, "  Create a default configuration file in the current directory:\n")
 	fmt.Fprintf(os.Stderr, "    asmfmt -init\n\n")
 	fmt.Fprintf(os.Stderr, "  Format a file in place:\n")
@@ -157,6 +189,14 @@ func main() {
 func gofmtMain() {
 	flag.Usage = usage
 	flag.Parse()
+
+	initVersion()
+	if *showVersion {
+		fmt.Printf("asmfmt version: %s\n", version)
+		fmt.Printf("git hash: %s\n", gitHash)
+		fmt.Printf("build time: %s\n", buildTime)
+		return
+	}
 
 	if *initCfg {
 		filename := ".asmfmt.toml"
