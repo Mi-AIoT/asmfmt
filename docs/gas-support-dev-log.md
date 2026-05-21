@@ -139,7 +139,7 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - `go vet ./...`
   - `go test -run TestRewrite ./...`
 - Commit:
-  - pending
+  - `fd35d25` `test: extend riscv gas fixture coverage`
 - Notes:
   - brand-new `.golden` files were generated with `go run ./cmd/asmfmt ...` and then verified for idempotence through `TestRewrite`
 
