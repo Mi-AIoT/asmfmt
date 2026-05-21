@@ -139,21 +139,21 @@ align_comments = true
 
 支持的配置项：
 
-* `indent_style`：`tab` 或 `space`
-* `indent_width`：正整数，仅在 `indent_style = "space"` 时生效
-* `align_operands`
-* `align_comments`：布尔值。在 GAS 风格中，注释对齐仅根据带有注释的行计算，以防止没有注释的长指令行破坏对齐。
-* `align_continuations`
-* `max_blank_lines`
-* `split_semicolon_statements`
-* `newline_before_comments`
-* `newline_before_labels`
-* `labels_always_on_own_line`
-* `line_comment_space`
-* `convert_single_line_block_comment`
-* `preferred_comment_style`：`preserve` 或 `slash`
-* `source_style`：`auto`、`plan9`、`gas` 或 `riscv-gas`
-* `indent_gas_directives`：布尔值，是否将零缩进的 GAS directive 缩进到指令级别。默认值为 `false`。
+* `indent_style`：`tab` 或 `space`。选择使用 tab 缩进或空格缩进。默认值为 `tab`。
+* `indent_width`：正整数。当 `indent_style = "space"` 时每级缩进的空格数。默认值为 `8`。
+* `align_operands`：布尔值。在一组连续指令行之间对齐第一个操作数。默认值为 `true`。
+* `align_comments`：布尔值。对齐行尾注释。在 GAS 风格中，注释对齐列宽仅根据带注释的行计算，以防止没有注释的长指令行破坏对齐。默认值为 `true`。
+* `align_continuations`：布尔值。对齐多行宏体中末尾的 `\` 换行符。默认值为 `true`。
+* `max_blank_lines`：非负整数。保留连续空行的最大数量。默认值为 `1`。
+* `split_semicolon_statements`：布尔值。在允许的风格下将分号分隔的多条语句拆分到单独的行中。默认值为 `true`。
+* `newline_before_comments`：布尔值。在新注释块开头的独立注释行之前插入一个空行。默认值为 `true`。
+* `newline_before_labels`：布尔值。在标签或其他 0 级指令段之前插入一个空行。默认值为 `true`。
+* `labels_always_on_own_line`：布尔值。强制将带有后续指令的内联标签拆分到独立行。默认值为 `true`。
+* `line_comment_space`：布尔值。在注释符后插入一个空格（例如 `// comment`）。默认值为 `true`。
+* `convert_single_line_block_comment`：布尔值。在安全的情况下将单行块注释转换为普通的行注释（例如 `/* comment */` 转换为 `// comment`）。默认值为 `true`。
+* `preferred_comment_style`：`preserve` 或 `slash`。规定格式化输出注释标志。`preserve` 保持原始标志（`#`、`@`、`//`）；`slash` 规范化为 `//`。默认值为 `preserve`。
+* `source_style`：`auto`、`plan9`、`gas` 或 `riscv-gas`。强制指定源文件格式风格或自动检测。默认值为 `auto`。
+* `indent_gas_directives`：布尔值。是否将零缩进的 GAS directive（如 `.global`、`.type`、`.word`）缩进到当前的指令/宏级别。默认值为 `false`。
 
 完整注释版配置参考见 [.asmfmt.toml.example](.asmfmt.toml.example)。
 

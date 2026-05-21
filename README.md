@@ -142,21 +142,21 @@ align_comments = true
 
 Supported config keys:
 
-* `indent_style`: `tab` or `space`
-* `indent_width`: positive integer, used when `indent_style = "space"`
-* `align_operands`
-* `align_comments`: boolean. In GAS style, comment alignment is only calculated from lines with comments to prevent long comment-less lines from throwing off alignment.
-* `align_continuations`
-* `max_blank_lines`
-* `split_semicolon_statements`
-* `newline_before_comments`
-* `newline_before_labels`
-* `labels_always_on_own_line`
-* `line_comment_space`
-* `convert_single_line_block_comment`
-* `preferred_comment_style`: `preserve` or `slash`
-* `source_style`: `auto`, `plan9`, `gas`, or `riscv-gas`
-* `indent_gas_directives`: boolean, whether to indent zero-indent GAS directives to the instruction level. Default is `false`.
+* `indent_style`: `tab` or `space`. Choose between tab indentation or spaces. Default is `tab`.
+* `indent_width`: positive integer. Number of spaces per indentation level when `indent_style = "space"`. Default is `8`.
+* `align_operands`: boolean. Align the first operand across a block of instruction lines. Default is `true`.
+* `align_comments`: boolean. Align end-of-line comments across a block. In GAS style, comment alignment column is calculated only from lines with comments to prevent long comment-less instructions from throwing off alignment. Default is `true`.
+* `align_continuations`: boolean. Align trailing `\` continuation markers in multiline macro bodies. Default is `true`.
+* `max_blank_lines`: non-negative integer. Maximum number of consecutive blank lines to keep. Default is `1`.
+* `split_semicolon_statements`: boolean. Split semicolon-separated statements onto separate lines where the style permits. Default is `true`.
+* `newline_before_comments`: boolean. Insert a blank line before standalone comment lines starting a new comment block. Default is `true`.
+* `newline_before_labels`: boolean. Insert a blank line before labels or other level-0 entries. Default is `true`.
+* `labels_always_on_own_line`: boolean. Force labels onto their own line when they have trailing instructions on the same line. Default is `true`.
+* `line_comment_space`: boolean. Insert a space after comment markers (e.g. `// comment`). Default is `true`.
+* `convert_single_line_block_comment`: boolean. Convert a single-line block comment into a line comment (e.g. `/* comment */` to `// comment`) when safe. Default is `true`.
+* `preferred_comment_style`: `preserve` or `slash`. Choose how line comments should be written. `preserve` keeps the original marker (`#`, `@`, `//`); `slash` normalizes to `//`. Default is `preserve`.
+* `source_style`: `auto`, `plan9`, `gas`, or `riscv-gas`. Force a specific source format or detect automatically. Default is `auto`.
+* `indent_gas_directives`: boolean. Indent zero-indent GAS directives (like `.global`, `.type`, `.word`) to the instruction/macro level. Default is `false`.
 
 See [.asmfmt.toml.example](.asmfmt.toml.example) for a fully commented reference.
 
