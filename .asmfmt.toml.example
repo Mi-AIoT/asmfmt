@@ -34,6 +34,9 @@ indent_width = 8
 align_operands = true
 
 # Align end-of-line comments so comment markers line up across a block.
+# Note: For GAS-style formats, comment alignment is only calculated from lines
+# that actually contain comments to prevent long comment-less instructions from
+# pushing comments too far to the right.
 # Default: true
 align_comments = true
 
