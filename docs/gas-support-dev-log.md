@@ -143,6 +143,48 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
 - Notes:
   - brand-new `.golden` files were generated with `go run ./cmd/asmfmt ...` and then verified for idempotence through `TestRewrite`
 
+### Step 7: Real-World Corpus Testing
+
+- Status: completed
+- Scope:
+  - added `TestOptionalCorpus` as an environment-gated local corpus runner
+  - corpus mode walks local assembly files and checks formatting idempotence without requiring checked-in external corpora
+- Verification:
+  - `go test ./...`
+  - `go vet ./...`
+- Commit:
+  - `590d6c6` `test: add optional corpus and semantic checks`
+- Notes:
+  - corpus testing is skipped unless `ASMFMT_CORPUS_DIR` is set
+
+### Step 8: Optional Semantic Verification
+
+- Status: completed
+- Scope:
+  - added `TestOptionalSemanticEquivalence` gated by `ASMFMT_AS`
+  - semantic mode assembles selected RISC-V fixtures before and after formatting and compares normalized `objdump -dr` output
+  - preserved self-contained default test behavior by skipping the test unless toolchain variables are explicitly set
+- Verification:
+  - `go test ./...`
+  - `go vet ./...`
+- Commit:
+  - `590d6c6` `test: add optional corpus and semantic checks`
+- Notes:
+  - semantic mode also accepts `ASMFMT_ASFLAGS`, `ASMFMT_OBJDUMP`, and `ASMFMT_OBJDUMPFLAGS`
+
+### Step 9: Documentation
+
+- Status: completed
+- Scope:
+  - updated `README.md` with supported syntax, non-goals, style detection, optional tests, and fixture contribution guidance
+  - extended the execution checklist to include phases 7 through 9
+- Verification:
+  - documentation review
+- Commit:
+  - pending
+- Notes:
+  - README now reflects the current GAS/RISC-V support envelope and the optional verification workflow
+
 ## Current Progress Summary
 
 - Completed roadmap increments:
@@ -153,5 +195,8 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - Step 4 directive coverage expansion
   - Step 5 source-style detection
   - Step 6 RISC-V fixture completion
+  - Step 7 real-world corpus testing
+  - Step 8 optional semantic verification
+  - Step 9 documentation
 - Remaining roadmap increments:
-  - none from the tracked Step 0-6 execution checklist
+  - none from the tracked plan

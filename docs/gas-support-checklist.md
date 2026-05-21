@@ -144,3 +144,48 @@ Suggested commit split:
 
 1. new fixture groups
 2. targeted parser fixes only if fixtures expose bugs
+
+## Step 7: Real-World Corpus Testing
+
+Goal: support optional broader syntax checking without making default tests depend on external corpora.
+
+Deliverables:
+
+- [x] Add an optional local corpus runner driven by environment configuration.
+- [x] Keep default `go test ./...` self-contained.
+- [x] Avoid any network requirement during tests.
+
+Suggested commit split:
+
+1. optional corpus test helper
+
+## Step 8: Optional Semantic Verification
+
+Goal: allow explicit assembler-backed equivalence checks without making them a default dependency.
+
+Deliverables:
+
+- [x] Gate semantic verification behind environment variables.
+- [x] Assemble original and formatted output for selected fixtures.
+- [x] Compare normalized objdump output.
+- [x] Keep default `go test ./...` self-contained.
+
+Suggested commit split:
+
+1. optional assembler/objdump test helper
+
+## Step 9: Documentation
+
+Goal: document supported behavior, limits, and extension workflow.
+
+Deliverables:
+
+- [x] Update `README.md` with supported dialects and GAS/RISC-V summary.
+- [x] Document unknown directive behavior and non-validation policy.
+- [x] Document style detection assumptions.
+- [x] Add contributor guidance for new fixtures.
+- [x] Document optional corpus and semantic test entry points.
+
+Suggested commit split:
+
+1. README and contributor workflow updates

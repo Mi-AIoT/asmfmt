@@ -90,6 +90,44 @@ The flags are similar to `gofmt`, except it will only process `.s` files:
 ```
 You should only run `asmfmt` on files that are assembler files. Assembler files cannot be positively identified, so it will mangle non-assembler files.
 
+# supported syntax
+
+`asmfmt` primarily formats Go/Plan 9 style assembly, and also supports a growing subset of GAS-style syntax that is common in RISC-V and ELF-oriented assembler sources.
+
+Supported and tested coverage includes:
+
+* Go / Plan 9 assembler indentation and alignment rules.
+* GAS directives used in RISC-V assembly, including `.section`, `.attribute`, `.option`, `.insn`, relocation helpers, CFI directives, data directives, and symbol visibility directives.
+* GAS macro blocks such as `.macro`, `.irp`, `.irpc`, `.rept`, `.if`, `.else`, and matching end directives.
+* GAS comments using `#`, `//`, block comments, and ARM/GAS `@` line comments when the source is detected as GAS-like.
+* RISC-V operand forms such as `%hi(...)`, `%lo(...)`, `%pcrel_hi(...)`, `%pcrel_lo(...)`, local numeric labels like `1b`, CSR operands, vector operands, compressed mnemonics, and `.insn` encodings.
+
+Unknown directives and unknown lowercase mnemonics are preserved conservatively. `asmfmt` will still align and indent surrounding code, but it does not try to validate or normalize unknown syntax beyond safe whitespace handling.
+
+# non-goals
+
+`asmfmt` is a formatter, not an assembler or linter.
+
+It intentionally does not:
+
+* validate opcode legality,
+* reject unknown directives or vendor mnemonics,
+* require binutils or another assembler at runtime,
+* guarantee semantic equivalence through default tests,
+* rewrite unrelated Plan 9 formatting behavior to follow GAS conventions.
+
+# style detection
+
+Dialect detection is internal and heuristic. There is no public flag to force a syntax mode.
+
+Current style hints are used to distinguish:
+
+* Plan 9 / Go assembler files,
+* GAS-like files,
+* RISC-V GAS files.
+
+These hints affect whether `#` or `@` starts a comment, whether `;` should split statements, and whether lowercase mnemonics are treated as instruction-stream commands. Detection is intentionally conservative to avoid breaking existing Plan 9 formatting.
+
 # formatting
 
 * Automatic indentation.
@@ -111,3 +149,35 @@ You should only run `asmfmt` on files that are assembler files. Assembler files 
 * Aligns `\` in multiline macros.
 * Whitespace before separating `;` is removed. Space is inserted after, if followed by another instruction.
 
+# tests
+
+Default verification stays self-contained:
+
+* `go test ./...`
+* `go vet ./...`
+* `go test -run TestRewrite ./...`
+
+Optional local corpus formatting checks can be enabled with:
+
+* `ASMFMT_CORPUS_DIR=/path/to/corpus go test -run TestOptionalCorpus ./...`
+
+This walks local assembly files and checks that formatting is idempotent. No network access is used.
+
+Optional semantic equivalence checks can be enabled with an assembler and objdump:
+
+* `ASMFMT_AS=riscv64-linux-gnu-as`
+* `ASMFMT_OBJDUMP=riscv64-linux-gnu-objdump`
+* `ASMFMT_ASFLAGS='-march=rv64gc -mabi=lp64d'`
+* `go test -run TestOptionalSemanticEquivalence ./...`
+
+These tests are skipped unless the environment is explicitly configured.
+
+# adding fixtures
+
+When extending syntax coverage:
+
+* add one focused feature or syntax family per fixture when possible,
+* always add both `testdata/name.in` and `testdata/name.golden`,
+* use `go test -run TestRewrite -update` only for intentional output changes to existing fixtures,
+* for brand-new fixtures, generate the initial `.golden` and then rerun `go test -run TestRewrite ./...` to confirm idempotence,
+* remove any `*.asmfmt` diagnostics left behind by failing tests before committing.
