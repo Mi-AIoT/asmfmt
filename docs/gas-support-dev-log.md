@@ -47,7 +47,7 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - `go test ./...`
   - `go vet ./...`
 - Commit:
-  - pending
+  - `bdf6146` `fix: preserve gas macro body text`
 - Notes:
   - `testdata/riscv_gas.golden` intentionally changed inside a macro body: `lui  \reg, ...` became `lui \reg, ...` because macro body instructions are now preserved instead of alignment-normalized
 
@@ -64,7 +64,7 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - `go test ./...`
   - `go vet ./...`
 - Commit:
-  - pending
+  - `9615085` `refactor: extract gas expression parameter scanner`
 - Notes:
   - a stronger case with inline block comments inside operand lists was intentionally deferred; current formatter still treats those comments as structural boundaries, so this step keeps the fixture focused on expression grouping rather than comment fusion
 
@@ -88,6 +88,18 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - `go test ./...`
   - `go vet ./...`
 - Commit:
-  - pending
+  - `8510ddd` `feat: expand gas directive coverage`
 - Notes:
   - the first attempt over-classified `.insn` and `.ascii` as zero-indent directives; that was corrected before commit so existing in-stream indentation behavior stayed stable
+
+## Current Progress Summary
+
+- Completed roadmap increments:
+  - Step 0 planning and tracking
+  - Step 1 lexer infrastructure
+  - Step 2 macro and altmacro handling
+  - Step 3 expression-safe operand handling
+  - Step 4 directive coverage expansion
+- Remaining roadmap increments:
+  - Step 5 source-style detection
+  - Step 6 RISC-V fixture completion
