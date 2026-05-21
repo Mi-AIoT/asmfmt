@@ -23,6 +23,8 @@ go install github.com/Mi-AIoT/asmfmt/cmd/asmfmt@latest
 asmfmt [flags] [path ...]
 ```
 
+默认情况下，运行 `asmfmt -h` 或 `asmfmt --help` 会在帮助信息的顶部打印版本信息（包含版本号、Git Commit Hash 及构建时间）。
+
 ### 选项清单与详细作用：
 
 #### `-config <file>`
@@ -66,6 +68,9 @@ asmfmt [flags] [path ...]
 
 #### `-cpuprofile <file>`
 * **作用**：将 CPU 性能数据输出到指定文件，主要用于对大文件格式化分析时的性能调优。
+
+#### `-version`
+* **作用**：打印版本信息（包括版本号、Git Commit Hash 及构建时间）并退出。
 
 ---
 

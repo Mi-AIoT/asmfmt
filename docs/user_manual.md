@@ -23,6 +23,8 @@ The basic command-line syntax is:
 asmfmt [flags] [path ...]
 ```
 
+When running `asmfmt -h` or `asmfmt --help`, the tool prints version information (version number, git commit hash, and build time) at the very top of the help message by default.
+
 ### Flags & Descriptions:
 
 #### `-config <file>`
@@ -65,6 +67,9 @@ asmfmt [flags] [path ...]
 
 #### `-cpuprofile <file>`
 * **Description**: Outputs CPU profiling data to the specified file. Mainly used for performance tuning when formatting large sets of files.
+
+#### `-version`
+* **Description**: Prints version information (version number, git commit hash, and build time) and exits.
 
 ---
 
