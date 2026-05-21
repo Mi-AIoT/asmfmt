@@ -593,3 +593,30 @@ func TestPreProcessorIndentation(t *testing.T) {
 		t.Fatalf("TestPreProcessorIndentation got:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestGasTerminatorIndentationBypass(t *testing.T) {
+	input := "stl_timer_handler:\n\taddi a0, a0, 1\n\tret\n\n\t// ===== software Interrupt Handler =====\n\tSTL_GLOBAL_FUNC stl_sft_handler\n\nstl_sft_handler:\n\tret\n"
+	opts := DefaultOptions()
+	opts.SourceStyle = "riscv-gas"
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "stl_timer_handler:\n\taddi a0, a0, 1\n\tret\n\n\t// ===== software Interrupt Handler =====\n\tSTL_GLOBAL_FUNC stl_sft_handler\n\nstl_sft_handler:\n\tret\n"
+	if string(got) != want {
+		t.Fatalf("TestGasTerminatorIndentationBypass got:\n%s\nwant:\n%s", got, want)
+	}
+}
+
+func TestCommentedPreprocessorIndentation(t *testing.T) {
+	input := "#define A 1\n// #define B 2\n#define C 3\n"
+	opts := DefaultOptions()
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "#define A 1\n// #define B 2\n#define C 3\n"
+	if string(got) != want {
+		t.Fatalf("TestCommentedPreprocessorIndentation got:\n%s\nwant:\n%s", got, want)
+	}
+}

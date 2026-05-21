@@ -528,7 +528,9 @@ exitcomm:
 			f.indentation = f.gasBlock
 		}
 		f.flush()
-		f.indentation = f.gasBlock
+		if f.style != styleGas && f.style != styleRiscvGas {
+			f.indentation = f.gasBlock
+		}
 	} else if st.isCommand() {
 		// handles cases where a JMP/RET isn't a terminator
 		f.indentation = 1
@@ -576,8 +578,18 @@ func (f *fstate) indentString(level int) string {
 // flush any queued comments and commands
 func (f *fstate) flush() {
 	for _, line := range f.comments {
-		f.indent()
-		fmt.Fprintln(f.out, line)
+		body := line
+		if strings.HasPrefix(body, "//") {
+			body = body[2:]
+		} else if strings.HasPrefix(body, "#") {
+			body = body[1:]
+		}
+		if isCommentedPreProcessor(body) {
+			fmt.Fprintln(f.out, line)
+		} else {
+			f.indent()
+			fmt.Fprintln(f.out, line)
+		}
 	}
 	f.comments = nil
 	s := formatStatements(f.queued, f.opts)
@@ -1458,6 +1470,18 @@ func appendSemicolonPart(parts []string, s string) []string {
 		return parts
 	}
 	return append(parts, s)
+}
+
+func isCommentedPreProcessor(s string) bool {
+	s = strings.TrimSpace(s)
+	if !strings.HasPrefix(s, "#") {
+		return false
+	}
+	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return false
+	}
+	return isPreProcessorInstruction(fields[0])
 }
 
 func isPreProcessorInstruction(s string) bool {
