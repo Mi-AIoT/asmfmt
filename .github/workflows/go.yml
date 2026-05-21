@@ -71,3 +71,26 @@ jobs:
       with:
         version: '~> v2'
         args: release --snapshot --clean
+
+  semantic-riscv:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: 0
+      ASMFMT_AS: riscv64-linux-gnu-as
+      ASMFMT_OBJDUMP: riscv64-linux-gnu-objdump
+      ASMFMT_ASFLAGS: -march=rv64gc -mabi=lp64d
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: '1.26.x'
+        cache: true
+
+    - name: Install RISC-V binutils
+      run: sudo apt-get update && sudo apt-get install -y binutils-riscv64-linux-gnu
+
+    - name: Semantic Equivalence
+      run: go test -run TestOptionalSemanticEquivalence -v ./...

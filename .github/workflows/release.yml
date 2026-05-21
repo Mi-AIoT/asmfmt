@@ -9,7 +9,57 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Test Race
+        env:
+          CGO_ENABLED: 1
+        run: go test -cpu="1,4" -short -race -v ./...
+
+      - name: fmt
+        run: diff <(gofmt -d .) <(printf "")
+
+  semantic-riscv:
+    runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: 0
+      ASMFMT_AS: riscv64-linux-gnu-as
+      ASMFMT_OBJDUMP: riscv64-linux-gnu-objdump
+      ASMFMT_ASFLAGS: -march=rv64gc -mabi=lp64d
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+          cache: true
+
+      - name: Install RISC-V binutils
+        run: sudo apt-get update && sudo apt-get install -y binutils-riscv64-linux-gnu
+
+      - name: Semantic Equivalence
+        run: go test -run TestOptionalSemanticEquivalence -v ./...
+
   goreleaser:
+    needs: [verify, semantic-riscv]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

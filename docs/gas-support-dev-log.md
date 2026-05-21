@@ -200,3 +200,18 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - Step 9 documentation
 - Remaining roadmap increments:
   - none from the tracked plan
+
+### CI Hardening Follow-Up
+
+- Status: completed
+- Scope:
+  - added an Ubuntu-only `semantic-riscv` job to the main CI workflow
+  - expanded semantic equivalence coverage to include `testdata/riscv_insn.in`
+  - added release workflow gating so tagged releases wait for verify and semantic jobs before running GoReleaser
+- Verification:
+  - `go test ./...`
+  - `go vet ./...`
+- Commit:
+  - pending
+- Notes:
+  - local semantic execution was not run in this environment because `riscv64-linux-gnu-as` and `riscv64-linux-gnu-objdump` were not installed locally; the workflow installs them explicitly in CI

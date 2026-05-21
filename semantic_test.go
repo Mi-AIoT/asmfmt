@@ -25,6 +25,7 @@ func TestOptionalSemanticEquivalence(t *testing.T) {
 		"testdata/riscv_pseudo.in",
 		"testdata/riscv_relocations_labels.in",
 		"testdata/riscv_csr.in",
+		"testdata/riscv_insn.in",
 	}
 	for _, fixture := range fixtures {
 		fixture := fixture
