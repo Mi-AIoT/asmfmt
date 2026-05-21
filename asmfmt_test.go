@@ -254,3 +254,15 @@ addi \reg, \reg, 1; addi \reg, \reg, 2
 		t.Fatalf("Format macro body:\n%s", got)
 	}
 }
+
+func TestUnknownDirectivePreservesText(t *testing.T) {
+	input := `.foo a,b,@c # keep spacing
+`
+	got, err := Format(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != input {
+		t.Fatalf("Format unknown directive:\n%s", got)
+	}
+}

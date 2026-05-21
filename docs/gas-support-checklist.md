@@ -91,21 +91,21 @@ Goal: expand tested GAS directive support in small, category-based batches.
 
 Deliverables:
 
-- [ ] Classify directives into:
-  - [ ] zero-indent control directives
-  - [ ] indentation-affecting block directives
-  - [ ] instruction-stream directives
-  - [ ] data-emitting directives
-  - [ ] unknown directives
-- [ ] Add grouped fixtures for:
-  - [ ] debug and location directives
-  - [ ] CFI directives
-  - [ ] data and storage directives
-  - [ ] symbol and visibility directives
-  - [ ] struct-like layout directives
-  - [ ] section variants
-  - [ ] miscellaneous directives
-- [ ] Document and test conservative unknown-directive behavior.
+- [x] Classify directives into:
+  - [x] zero-indent control directives
+  - [x] indentation-affecting block directives
+  - [x] instruction-stream directives
+  - [x] data-emitting directives
+  - [x] unknown directives
+- [x] Add grouped fixtures for:
+  - [x] debug and location directives
+  - [x] CFI directives
+  - [x] data and storage directives
+  - [x] symbol and visibility directives
+  - [x] struct-like layout directives
+  - [x] section variants
+  - [x] miscellaneous directives
+- [x] Document and test conservative unknown-directive behavior.
 
 Suggested commit split:
 

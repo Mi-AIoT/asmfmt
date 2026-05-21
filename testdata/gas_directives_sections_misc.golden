@@ -1,0 +1,11 @@
+.pushsection .text.foo, "ax", @progbits, comdat
+.subsection 1
+.previous
+.include "other.inc"
+.warning "careful"
+.title "sample"
+.sbttl "sub"
+
+.struct 0
+.offset 8
+.endstruct

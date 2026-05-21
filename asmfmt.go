@@ -251,7 +251,9 @@ exitcomm:
 	}()
 
 	var st *statement
-	if f.inMacro && isMacroBodyText(s) {
+	if isConservativeUnknownGasDirective(s) {
+		st = &statement{instruction: s, function: true}
+	} else if f.inMacro && isMacroBodyText(s) {
 		st = &statement{instruction: s, function: true}
 	} else {
 		st = newStatement(s, f.defines)
@@ -387,6 +389,14 @@ func isMacroBodyText(s string) bool {
 	}
 	head := fields[0]
 	return !strings.HasPrefix(head, ".") && !strings.HasSuffix(head, ":") && !isPreProcessorInstruction(head)
+}
+
+func isConservativeUnknownGasDirective(s string) bool {
+	fields := strings.Fields(s)
+	if len(fields) == 0 || !strings.HasPrefix(fields[0], ".") {
+		return false
+	}
+	return !isKnownGasDirectiveName(fields[0])
 }
 
 // Add a newline, unless last line was empty or a comment
@@ -674,7 +684,8 @@ func (st statement) usesGasParams() bool {
 func (st statement) isGasBlockStart() bool {
 	switch st.instruction {
 	case ".macro", ".irp", ".irpc", ".rept", ".if", ".ifdef", ".ifndef", ".ifnotdef",
-		".ifb", ".ifnb", ".ifc", ".ifnc", ".ifeq", ".ifne", ".ifge", ".ifgt", ".ifle", ".iflt":
+		".ifb", ".ifnb", ".ifc", ".ifnc", ".ifeq", ".ifne", ".ifge", ".ifgt", ".ifle", ".iflt",
+		".struct":
 		return true
 	default:
 		return false
@@ -692,7 +703,7 @@ func (st statement) isGasBlockMiddle() bool {
 
 func (st statement) isGasBlockEnd() bool {
 	switch st.instruction {
-	case ".endm", ".endr", ".endif":
+	case ".endm", ".endr", ".endif", ".endstruct":
 		return true
 	default:
 		return false
@@ -707,10 +718,44 @@ func (st statement) isGasZeroDirective() bool {
 	case ".text", ".data", ".rodata", ".bss", ".section", ".pushsection", ".popsection",
 		".previous", ".subsection", ".globl", ".global", ".local", ".weak", ".comm",
 		".common", ".file", ".ident", ".size", ".type", ".attribute", ".option",
+		".altmacro", ".noaltmacro",
 		".align", ".p2align", ".balign", ".equ", ".set", ".byte", ".2byte", ".half",
 		".short", ".4byte", ".word", ".long", ".8byte", ".dword", ".quad", ".float",
-		".double", ".string", ".asciz", ".zero", ".sleb128", ".uleb128", ".variant_cc",
-		".reloc":
+		".double", ".string", ".asciz", ".zero",
+		".org", ".incbin", ".sleb128", ".uleb128", ".variant_cc", ".reloc", ".loc",
+		".line", ".app-file", ".hidden", ".protected", ".internal", ".symver", ".weakref",
+		".equiv", ".eqv", ".offset", ".include", ".err", ".error", ".warning", ".title",
+		".sbttl", ".cfi_startproc", ".cfi_endproc", ".cfi_def_cfa", ".cfi_def_cfa_register",
+		".cfi_def_cfa_offset", ".cfi_offset", ".cfi_restore", ".cfi_adjust_cfa_offset",
+		".cfi_remember_state", ".cfi_restore_state", ".cfi_sections", ".cfi_signal_frame":
+		return true
+	default:
+		return false
+	}
+}
+
+func (st statement) isKnownGasDirective() bool {
+	return isKnownGasDirectiveName(st.instruction)
+}
+
+func isKnownGasDirectiveName(name string) bool {
+	st := statement{instruction: name}
+	return st.isGasZeroDirective() || st.isGasBlockStart() || st.isGasBlockMiddle() || st.isGasBlockEnd() ||
+		st.isGasInstructionStreamDirective() || st.isGasDataDirective()
+}
+
+func (st statement) isGasInstructionStreamDirective() bool {
+	switch st.instruction {
+	case ".insn":
+		return true
+	default:
+		return false
+	}
+}
+
+func (st statement) isGasDataDirective() bool {
+	switch st.instruction {
+	case ".ascii", ".space", ".skip", ".fill":
 		return true
 	default:
 		return false

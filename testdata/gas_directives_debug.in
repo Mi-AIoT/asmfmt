@@ -1,0 +1,4 @@
+.file 1, "main.S"
+.loc 1 42 0
+.line 43
+.app-file "compat.S"

@@ -67,3 +67,27 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - pending
 - Notes:
   - a stronger case with inline block comments inside operand lists was intentionally deferred; current formatter still treats those comments as structural boundaries, so this step keeps the fixture focused on expression grouping rather than comment fusion
+
+### Step 4: Directive Coverage Expansion
+
+- Status: completed
+- Scope:
+  - expanded known GAS directive classification across debug/location, CFI, data/storage, symbol/visibility, section/misc, and struct-like directives
+  - separated `known` from `zero-indent` so instruction-stream directives like `.insn` remain formatted in-stream while still avoiding the conservative unknown-directive path
+  - added conservative raw-text handling for unknown directives based on the first dotted token
+  - added grouped fixtures:
+    - `testdata/gas_directives_debug.*`
+    - `testdata/gas_directives_cfi.*`
+    - `testdata/gas_directives_data.*`
+    - `testdata/gas_directives_symbols.*`
+    - `testdata/gas_directives_sections_misc.*`
+    - `testdata/gas_directives_unknown.*`
+  - added a focused unit test asserting unknown-directive text preservation
+- Verification:
+  - `go test -run TestRewrite -update`
+  - `go test ./...`
+  - `go vet ./...`
+- Commit:
+  - pending
+- Notes:
+  - the first attempt over-classified `.insn` and `.ascii` as zero-indent directives; that was corrected before commit so existing in-stream indentation behavior stayed stable

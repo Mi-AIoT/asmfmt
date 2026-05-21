@@ -1,0 +1,6 @@
+.ascii "abc"
+.space 16
+.skip 8
+.fill 2, 4, 0xff
+.org 0x20
+.incbin "blob.bin", 4, 8

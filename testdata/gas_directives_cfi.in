@@ -1,0 +1,7 @@
+.cfi_startproc
+.cfi_def_cfa sp, 16
+.cfi_offset ra, -8
+.cfi_remember_state
+.cfi_restore ra
+.cfi_restore_state
+.cfi_endproc

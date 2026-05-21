@@ -1,0 +1,2 @@
+.foo a,b,@c # keep spacing
+.bar (1 << 4), "x,y"

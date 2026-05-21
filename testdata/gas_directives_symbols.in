@@ -1,0 +1,7 @@
+.hidden foo
+.protected bar
+.internal baz
+.symver old_foo, foo@@V2
+.weakref weak_alias, strong_name
+.equiv answer, 42
+.eqv alias, answer
