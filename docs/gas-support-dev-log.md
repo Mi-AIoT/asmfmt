@@ -212,6 +212,6 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - `go test ./...`
   - `go vet ./...`
 - Commit:
-  - pending
+  - `cbba8d0` `ci: gate releases on semantic riscv checks`
 - Notes:
   - local semantic execution was not run in this environment because `riscv64-linux-gnu-as` and `riscv64-linux-gnu-objdump` were not installed locally; the workflow installs them explicitly in CI
