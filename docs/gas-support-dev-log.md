@@ -121,9 +121,27 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - `go test ./...`
   - `go vet ./...`
 - Commit:
-  - pending
+  - `2e6b81a` `fix: detect gas source style for comments`
 - Notes:
   - Plan 9 behavior remains guarded by defaulting to the first strong style hint and only upgrading `gas` to `riscv-gas`
+
+### Step 6: RISC-V Fixture Completion
+
+- Status: completed
+- Scope:
+  - added focused fixture groups for CSR variants, additional extension mnemonics, vector operand combinations, and custom/vendor syntax
+  - covered symbolic CSR names, numeric CSR operands, and immediate CSR forms
+  - covered `fence.i`, bit-manip/arithmetic mnemonics, compressed forms, floating-point forms, and atomic acquire/release suffixes
+  - covered vector masks, segment loads/stores, indexed loads/stores, fault-only-first forms, and policy operands
+  - covered custom lowercase mnemonics and `.insn` encodings without adding validation logic
+- Verification:
+  - `go test ./...`
+  - `go vet ./...`
+  - `go test -run TestRewrite ./...`
+- Commit:
+  - pending
+- Notes:
+  - brand-new `.golden` files were generated with `go run ./cmd/asmfmt ...` and then verified for idempotence through `TestRewrite`
 
 ## Current Progress Summary
 
@@ -134,5 +152,6 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - Step 3 expression-safe operand handling
   - Step 4 directive coverage expansion
   - Step 5 source-style detection
-- Remaining roadmap increments:
   - Step 6 RISC-V fixture completion
+- Remaining roadmap increments:
+  - none from the tracked Step 0-6 execution checklist

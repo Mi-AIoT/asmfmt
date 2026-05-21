@@ -1,0 +1,10 @@
+.text
+.globl csr_cases
+csr_cases:
+	csrr   a0, mstatus
+	csrw   0x305, a1
+	csrs   mie, a2
+	csrci  mstatus, 8
+	csrwi  mtvec, 1
+	csrrsi a3, 0x342, 2
+	ret

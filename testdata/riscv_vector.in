@@ -1,0 +1,10 @@
+.text
+vector_cases:
+  vsetvli t0, a0, e8, m1, ta, ma
+  vle8.v v8, (a0), v0.t
+  vlseg2e32.v v8, (a0), vm
+  vlsseg3e16.v v9, (a1), a2, v0.t
+  vluxei32.v v10, (a0), v2, vm
+  vle32ff.v v11, (a3), v0.t
+  vsuxseg2ei32.v v12, (a0), v4, vm
+  ret

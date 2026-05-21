@@ -136,9 +136,9 @@ Goal: broaden real-world RISC-V coverage after the safer parsing pieces are in p
 
 Deliverables:
 
-- [ ] Add extension and operand edge-case samples from real-world syntax.
-- [ ] Reuse the earlier parser improvements rather than adding one-off heuristics.
-- [ ] Keep formatting idempotent across all new samples.
+- [x] Add extension and operand edge-case samples from real-world syntax.
+- [x] Reuse the earlier parser improvements rather than adding one-off heuristics.
+- [x] Keep formatting idempotent across all new samples.
 
 Suggested commit split:
 

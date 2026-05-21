@@ -1,0 +1,8 @@
+.text
+custom_cases:
+	custom0       x3, x4, x5
+	xvendor.accel a0, a1, a2, 7
+	.insn r 0x0b, 0, 0, a0, a1, a2
+.insn i 0x1b, 0x7, a3, a4, 9
+.vendor_raw a0,a1,@opaque # keep dotted text conservative
+	ret

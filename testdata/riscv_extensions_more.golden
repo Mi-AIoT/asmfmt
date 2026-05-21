@@ -1,0 +1,12 @@
+.text
+extensions_more:
+	fence.i
+	sh1add         a0, a1, a2
+	andn           a3, a4, a5
+	clmul          a6, a7, t0
+	bset           t1, t2, 3
+	flh            ft0, 0(a0)
+	fli.s          fa0, 1.0
+	c.addi         a0, 1
+	amoswap.w.aqrl a0, a1, (a2)
+	ret
