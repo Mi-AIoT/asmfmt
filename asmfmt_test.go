@@ -300,7 +300,135 @@ func TestAtLineCommentStyle(t *testing.T) {
 }
 
 func TestPlan9SemicolonsStayInline(t *testing.T) {
-	if shouldSplitSemicolonStatementsForStyle(`REP; MOVSL`, stylePlan9) {
+	if shouldSplitSemicolonStatementsForStyle(`REP; MOVSL`, stylePlan9, true) {
 		t.Fatal("plan9 semicolon unexpectedly split")
+	}
+}
+
+func TestParseOptionsTOMLRejectsUnknownField(t *testing.T) {
+	_, err := ParseOptionsTOML([]byte("unknown_field = true\n"))
+	if err == nil || !strings.Contains(err.Error(), "unknown config field") {
+		t.Fatalf("ParseOptionsTOML unknown field error = %v", err)
+	}
+}
+
+func TestParseOptionsTOMLRejectsInvalidEnum(t *testing.T) {
+	_, err := ParseOptionsTOML([]byte("source_style = \"weird\"\n"))
+	if err == nil || !strings.Contains(err.Error(), "invalid source_style") {
+		t.Fatalf("ParseOptionsTOML invalid enum error = %v", err)
+	}
+}
+
+func TestFormatWithOptionsSpaceIndent(t *testing.T) {
+	input := "TEXT foo(SB),$0\nMOVQ AX,BX\n"
+	opts := DefaultOptions()
+	opts.IndentStyle = "space"
+	opts.IndentWidth = 2
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "TEXT foo(SB), $0\n  MOVQ AX, BX\n"
+	if string(got) != want {
+		t.Fatalf("FormatWithOptions space indent:\n%s", got)
+	}
+}
+
+func TestFormatWithOptionsDisableAlignment(t *testing.T) {
+	input := "addi a0, a1, 1 # one\nlonginstruction a0, a1, 2 # two\n"
+	opts := DefaultOptions()
+	opts.AlignOperands = false
+	opts.AlignComments = false
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "addi a0, a1, 1 # one\nlonginstruction a0, a1, 2 # two\n"
+	if string(got) != want {
+		t.Fatalf("FormatWithOptions alignment:\n%s", got)
+	}
+}
+
+func TestFormatWithOptionsDisableSemicolonSplit(t *testing.T) {
+	input := "addi a0, a0, 1; ret # done\n"
+	opts := DefaultOptions()
+	opts.SplitSemicolonStatements = false
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "addi a0, a0, 1; ret # done\n"
+	if string(got) != want {
+		t.Fatalf("FormatWithOptions semicolon split:\n%s", got)
+	}
+}
+
+func TestFormatWithOptionsDisableLineCommentSpace(t *testing.T) {
+	input := "// comment\naddi a0, a0, 1 // note\n"
+	opts := DefaultOptions()
+	opts.LineCommentSpace = false
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "//comment\naddi a0, a0, 1 //note\n"
+	if string(got) != want {
+		t.Fatalf("FormatWithOptions line comment spacing:\n%s", got)
+	}
+}
+
+func TestFormatWithOptionsPreserveSingleLineBlockComment(t *testing.T) {
+	input := "/* comment */\n"
+	opts := DefaultOptions()
+	opts.ConvertSingleLineBlockComment = false
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "/* comment */\n"
+	if string(got) != want {
+		t.Fatalf("FormatWithOptions block comment:\n%s", got)
+	}
+}
+
+func TestFormatWithOptionsKeepLabelInline(t *testing.T) {
+	input := "loop: addi a0, a0, 1\n"
+	opts := DefaultOptions()
+	opts.LabelsAlwaysOnOwnLine = false
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "loop: addi a0, a0, 1\n"
+	if string(got) != want {
+		t.Fatalf("FormatWithOptions label handling:\n%s", got)
+	}
+}
+
+func TestFormatWithOptionsForcePlan9Style(t *testing.T) {
+	input := "rep; movsl\n"
+	opts := DefaultOptions()
+	opts.SourceStyle = "plan9"
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "rep; movsl\n"
+	if string(got) != want {
+		t.Fatalf("FormatWithOptions forced plan9:\n%s", got)
+	}
+}
+
+func TestFormatWithOptionsForceGasStyle(t *testing.T) {
+	input := "MOV R0 @ one\nLONGNAME R0, R1 @ two\n"
+	opts := DefaultOptions()
+	opts.SourceStyle = "gas"
+	opts.PreferredCommentStyle = "slash"
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(got), "// one") || !strings.Contains(string(got), "// two") {
+		t.Fatalf("FormatWithOptions forced gas:\n%s", got)
 	}
 }

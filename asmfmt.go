@@ -13,9 +13,25 @@ import (
 // Format the input and return the formatted data.
 // If any error is encountered, no data will be returned.
 func Format(in io.Reader) ([]byte, error) {
+	return FormatWithOptions(in, DefaultOptions())
+}
+
+// FormatWithOptions formats the input and return the formatted data.
+// If any error is encountered, no data will be returned.
+func FormatWithOptions(in io.Reader, opts Options) ([]byte, error) {
+	nopts, err := opts.normalize()
+	if err != nil {
+		return nil, err
+	}
 	src := bufio.NewReaderSize(in, 512<<10)
 	dst := &bytes.Buffer{}
-	state := fstate{out: dst, defines: make(map[string]struct{})}
+	state := fstate{
+		out:         dst,
+		defines:     make(map[string]struct{}),
+		opts:        nopts,
+		style:       nopts.sourceStyle,
+		detectStyle: nopts.sourceStyle == styleUnknown,
+	}
 	for {
 		data, _, err := src.ReadLine()
 		if err == io.EOF {
@@ -34,22 +50,27 @@ func Format(in io.Reader) ([]byte, error) {
 }
 
 type fstate struct {
-	out           *bytes.Buffer
-	insideBlock   bool // Block comment
-	indentation   int  // Indentation level
-	lastEmpty     bool
-	lastComment   bool
-	lastStar      bool // Block comment, last line started with a star.
-	lastLabel     bool
-	anyContents   bool
-	lastContinued bool // Last line continued
-	gasBlock      int
-	inMacro       bool
-	altMacro      bool
-	style         sourceStyle
-	queued        []statement
-	comments      []string
-	defines       map[string]struct{}
+	out               *bytes.Buffer
+	insideBlock       bool // Block comment
+	indentation       int  // Indentation level
+	lastEmpty         bool
+	lastComment       bool
+	lastBlockComment  bool
+	lastStar          bool // Block comment, last line started with a star.
+	lastLabel         bool
+	anyContents       bool
+	lastContinued     bool // Last line continued
+	gasBlock          int
+	inMacro           bool
+	altMacro          bool
+	style             sourceStyle
+	detectStyle       bool
+	queued            []statement
+	comments          []string
+	defines           map[string]struct{}
+	opts              normalizedOptions
+	blankLines        int
+	emptyAfterComment bool
 }
 
 type statement struct {
@@ -75,7 +96,10 @@ func (f *fstate) addLine(b []byte) error {
 	// Inside block comment
 	if f.insideBlock {
 		defer func() {
+			f.blankLines = 0
+			f.lastEmpty = false
 			f.lastComment = true
+			f.lastBlockComment = true
 		}()
 		if strings.Contains(s, "*/") {
 			ends := strings.Index(s, "*/")
@@ -114,11 +138,19 @@ func (f *fstate) addLine(b []byte) error {
 
 	// Comment is the only line content.
 	if mark, ok := isStandaloneCommentLine(s, f.style); ok {
+		if f.lastEmpty && f.emptyAfterComment && f.out.Len() > 0 {
+			f.out.Truncate(f.out.Len() - 1)
+			f.lastEmpty = false
+			f.blankLines = 0
+		}
 		// Non-comment content is now added.
 		defer func() {
 			f.anyContents = true
+			f.blankLines = 0
+			f.emptyAfterComment = false
 			f.lastEmpty = false
 			f.lastStar = false
+			f.lastBlockComment = false
 		}()
 
 		s = strings.TrimPrefix(s, mark)
@@ -127,23 +159,24 @@ func (f *fstate) addLine(b []byte) error {
 		}
 		// Newline before comments
 		if len(f.comments) == 0 {
-			f.newLine()
+			f.newLine(f.opts.newlineBeforeComments)
 		}
 
 		// Preserve whitespace if the first character after the comment
 		// is a whitespace
 		ts := strings.TrimSpace(s)
 		var q string
-		if (ts != s && len(ts) > 0) || (len(s) > 0 && strings.ContainsAny(string(s[0]), `+/`)) || (mark == "//" && len(s) >= 8 && s[:8] == "go:build") {
-			q = fmt.Sprint(mark + s)
+		preserveRaw := (len(s) > 0 && strings.ContainsAny(string(s[0]), `+/`)) || (mark == "//" && len(s) >= 8 && s[:8] == "go:build")
+		if preserveRaw || (f.opts.lineCommentSpace && ts != s && len(ts) > 0) {
+			q = fmt.Sprint(f.preferredCommentMark(mark) + s)
 		} else if len(ts) > 0 {
-			// Insert a space before the comment
-			q = fmt.Sprint(mark + " " + s)
+			q = fmt.Sprint(f.preferredCommentMark(mark) + f.commentSeparator() + ts)
 		} else {
-			q = fmt.Sprint(mark)
+			q = fmt.Sprint(f.preferredCommentMark(mark))
 		}
 		f.comments = append(f.comments, q)
 		f.lastComment = true
+		f.lastBlockComment = false
 		return nil
 	}
 
@@ -173,9 +206,9 @@ func (f *fstate) addLine(b []byte) error {
 				goto exitcomm
 			}
 			// Add items before the comment section as a line.
-			if ends > starts && ends >= len(s)-2 {
+			if ends > starts && ends >= len(s)-2 && f.opts.convertSingleLineBlockComment {
 				comm := strings.TrimSpace(s[starts+2 : ends])
-				return f.addLine([]byte(pre + " // " + comm))
+				return f.addLine([]byte(pre + " " + f.preferredCommentMark("//") + f.commentSeparator() + comm))
 			}
 			err := f.addLine([]byte(pre))
 			if err != nil {
@@ -186,8 +219,8 @@ func (f *fstate) addLine(b []byte) error {
 		f.flush()
 
 		// Convert single line /* comment */ to // Comment
-		if ends > starts && ends >= len(s)-2 {
-			return f.addLine([]byte("// " + strings.TrimSpace(s[starts+2:ends])))
+		if ends > starts && ends >= len(s)-2 && f.opts.convertSingleLineBlockComment {
+			return f.addLine([]byte(f.preferredCommentMark("//") + f.commentSeparator() + strings.TrimSpace(s[starts+2:ends])))
 		}
 
 		// Comments inside multiline defines.
@@ -201,6 +234,7 @@ func (f *fstate) addLine(b []byte) error {
 		s = strings.TrimSpace(s[starts+2:])
 		f.insideBlock = ends < 0
 		f.lastComment = true
+		f.lastBlockComment = true
 		f.lastStar = true
 		if len(s) == 0 {
 			f.out.WriteByte('\n')
@@ -217,18 +251,22 @@ exitcomm:
 
 		// No more than two empty lines in a row
 		// cannot start with NL
-		if f.lastEmpty || !f.anyContents {
+		if f.blankLines >= f.opts.maxBlankLines || !f.anyContents {
 			return nil
 		}
 		if f.lastContinued {
 			f.indentation = 0
 			f.lastContinued = false
 		}
+		f.emptyAfterComment = f.lastComment && f.lastBlockComment
+		f.blankLines++
 		f.lastEmpty = true
 		return f.out.WriteByte('\n')
 	}
+	f.blankLines = 0
+	f.emptyAfterComment = false
 
-	if !f.inMacro && shouldSplitSemicolonStatementsForStyle(s, f.style) {
+	if !f.inMacro && shouldSplitSemicolonStatementsForStyle(s, f.style, f.opts.splitSemicolonStatements) {
 		parts := splitStatements(s, f.style)
 		if len(parts) > 1 {
 			for _, part := range parts {
@@ -243,9 +281,11 @@ exitcomm:
 	// Non-comment content is now added.
 	defer func() {
 		f.anyContents = true
+		f.blankLines = 0
 		f.lastEmpty = false
 		f.lastStar = false
 		f.lastComment = false
+		f.lastBlockComment = false
 	}()
 
 	var st *statement
@@ -270,7 +310,7 @@ exitcomm:
 	}
 
 	// Move anything that isn't a comment to the next line
-	if st.isLabel() && len(st.params) > 0 && !st.continued {
+	if f.opts.labelsAlwaysOnOwnLine && st.isLabel() && len(st.params) > 0 && !st.continued {
 		idx := strings.Index(s, ":")
 		st = newStatement(s[:idx+1], f.defines)
 		defer f.addLine([]byte(s[idx+1:]))
@@ -300,7 +340,7 @@ exitcomm:
 		// Add newline before jump targets, but not before GAS directives
 		// used inside an instruction stream.
 		if !st.isGasDirective() {
-			f.newLine()
+			f.newLine(f.opts.newlineBeforeLabels || !st.isLabel())
 		}
 
 		if !st.isGasDirective() || st.isGasZeroDirective() {
@@ -348,6 +388,12 @@ exitcomm:
 // indent the current line with current indentation.
 func (f *fstate) indent() {
 	for i := 0; i < f.indentation; i++ {
+		if f.opts.indentStyle == "space" {
+			for j := 0; j < f.opts.indentWidth; j++ {
+				f.out.WriteByte(' ')
+			}
+			continue
+		}
 		f.out.WriteByte('\t')
 	}
 }
@@ -359,7 +405,7 @@ func (f *fstate) flush() {
 		fmt.Fprintln(f.out, line)
 	}
 	f.comments = nil
-	s := formatStatements(f.queued)
+	s := formatStatements(f.queued, f.opts)
 	for _, line := range s {
 		f.indent()
 		fmt.Fprintln(f.out, line)
@@ -398,11 +444,30 @@ func isConservativeUnknownGasDirective(s string) bool {
 }
 
 // Add a newline, unless last line was empty or a comment
-func (f *fstate) newLine() {
+func (f *fstate) newLine(enabled bool) {
+	if !enabled || f.opts.maxBlankLines == 0 {
+		return
+	}
 	// Always newline before comment-only line.
 	if !f.lastEmpty && !f.lastComment && !f.lastLabel && f.anyContents {
 		f.out.WriteByte('\n')
+		f.blankLines = 1
+		f.lastEmpty = true
 	}
+}
+
+func (f *fstate) preferredCommentMark(mark string) string {
+	if f.opts.preferredCommentStyle == "slash" {
+		return "//"
+	}
+	return mark
+}
+
+func (f *fstate) commentSeparator() string {
+	if f.opts.lineCommentSpace {
+		return " "
+	}
+	return ""
 }
 
 // newStatement will parse a line and return it as a statement.
@@ -797,7 +862,14 @@ func (st *statement) cleanParams() {
 // formatStatements will format a slice of statements and return each line
 // as a separate string.
 // Comments and line-continuation (\) are aligned with spaces.
-func formatStatements(s []statement) []string {
+func formatStatements(s []statement, opts normalizedOptions) []string {
+	if opts.alignOperands && opts.alignComments && opts.alignContinuations && opts.lineCommentSpace && opts.preferredCommentStyle == "preserve" {
+		return formatStatementsDefault(s)
+	}
+	return formatStatementsCustom(s, opts)
+}
+
+func formatStatementsDefault(s []statement) []string {
 	res := make([]string, len(s))
 	maxParam := 0 // Length of longest parameter
 	maxInstr := 0 // Length of longest instruction WITH parameters.
@@ -838,11 +910,11 @@ func formatStatements(s []statement) []string {
 	}
 
 	for i, x := range s {
-		r := x.instruction
 		if x.contComment {
 			res[i] = x.instruction
 			continue
 		}
+		r := x.instruction
 		p := strings.Join(x.params, ", ")
 		if len(x.params) > 0 || len(x.comment) > 0 {
 			for len(r) < maxInstr {
@@ -853,9 +925,9 @@ func formatStatements(s []statement) []string {
 		if len(x.comment) > 0 && !x.continued {
 			it := maxParam - len([]rune(r))
 			for i := 0; i < it; i++ {
-				r = r + " "
+				r += " "
 			}
-			r += fmt.Sprintf("%s %s", x.lineCommentMark(), x.comment)
+			r += fmt.Sprintf("%s %s", x.defaultLineCommentMark(), x.comment)
 		}
 
 		if x.continued {
@@ -865,12 +937,12 @@ func formatStatements(s []statement) []string {
 				it = maxAlone - len([]rune(r))
 			}
 			for i := 0; i < it; i++ {
-				r = r + " "
+				r += " "
 			}
 			r += `\`
 			// Add comment, if any.
 			if len(x.comment) > 0 {
-				r += " " + x.lineCommentMark() + " " + x.comment
+				r += " " + x.defaultLineCommentMark() + " " + x.comment
 			}
 		}
 		res[i] = r
@@ -878,11 +950,100 @@ func formatStatements(s []statement) []string {
 	return res
 }
 
-func (st statement) lineCommentMark() string {
+func formatStatementsCustom(s []statement, opts normalizedOptions) []string {
+	res := make([]string, len(s))
+	maxInstr := 0
+	for i, x := range s {
+		x.cleanParams()
+		s[i] = x
+
+		il := len([]rune(x.instruction)) + 1
+		if il > maxInstr && !x.function && !(x.isCommand() && len(x.params) == 0) {
+			maxInstr = il
+		}
+	}
+
+	maxCodeLen := 0
+	for _, x := range s {
+		if x.contComment {
+			continue
+		}
+		l := len([]rune(renderStatementCode(x, maxInstr, opts)))
+		if l > maxCodeLen {
+			maxCodeLen = l
+		}
+	}
+
+	for i, x := range s {
+		if x.contComment {
+			res[i] = x.instruction
+			continue
+		}
+		r := renderStatementCode(x, maxInstr, opts)
+		if len(x.comment) > 0 && !x.continued {
+			if opts.alignComments {
+				it := maxCodeLen - len([]rune(r)) + 1
+				for i := 0; i < it; i++ {
+					r += " "
+				}
+			} else {
+				r += " "
+			}
+			r += x.lineCommentMark(opts) + commentTextSeparator(opts, x.comment) + x.comment
+		}
+
+		if x.continued {
+			if opts.alignContinuations {
+				it := maxCodeLen - len([]rune(r)) + 1
+				for i := 0; i < it; i++ {
+					r += " "
+				}
+			} else {
+				r += " "
+			}
+			r += `\`
+			if len(x.comment) > 0 {
+				r += " " + x.lineCommentMark(opts) + commentTextSeparator(opts, x.comment) + x.comment
+			}
+		}
+		res[i] = r
+	}
+	return res
+}
+
+func renderStatementCode(st statement, maxInstr int, opts normalizedOptions) string {
+	r := st.instruction
+	if opts.alignOperands {
+		if len(st.params) > 0 || len(st.comment) > 0 {
+			for len([]rune(r)) < maxInstr {
+				r += " "
+			}
+		}
+	} else if len(st.params) > 0 {
+		r += " "
+	}
+	return r + strings.Join(st.params, ", ")
+}
+
+func commentTextSeparator(opts normalizedOptions, text string) string {
+	if !opts.lineCommentSpace || text == "" {
+		return ""
+	}
+	return " "
+}
+
+func (st statement) defaultLineCommentMark() string {
 	if st.commentMark != "" {
 		return st.commentMark
 	}
 	return "//"
+}
+
+func (st statement) lineCommentMark(opts normalizedOptions) string {
+	if opts.preferredCommentStyle == "slash" {
+		return "//"
+	}
+	return st.defaultLineCommentMark()
 }
 
 func findLineComment(s string, style sourceStyle) (int, string) {
@@ -1011,7 +1172,7 @@ func splitStatements(s string, style sourceStyle) []string {
 }
 
 func shouldSplitSemicolonStatements(s string) bool {
-	return shouldSplitSemicolonStatementsForStyle(s, styleUnknown)
+	return shouldSplitSemicolonStatementsForStyle(s, styleUnknown, true)
 }
 
 func appendSemicolonPart(parts []string, s string) []string {

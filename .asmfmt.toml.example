@@ -1,0 +1,106 @@
+# Example asmfmt configuration.
+#
+# Copy this file to one of the supported discovery locations and then
+# uncomment or change the options you want:
+#
+# 1. Project config: nearest .asmfmt.toml found by walking upward
+#    from the formatted file's directory.
+# 2. User config: ~/.asmfmt.toml
+# 3. Global config: /etc/asmfmt.toml
+#
+# You can also bypass discovery and load a specific file with:
+#   asmfmt -config /path/to/asmfmt.toml
+#
+# Notes:
+# - The file format is TOML.
+# - Unknown fields are rejected.
+# - Invalid enum values or numbers are rejected.
+# - Unset fields keep asmfmt's built-in defaults.
+# - asmfmt loads only the first config it finds. It does not merge files.
+
+# Indentation style for emitted output.
+# Supported values:
+#   "tab"   - indent with tabs. This is the default and preserves historical behavior.
+#   "space" - indent with spaces. See indent_width below.
+indent_style = "tab"
+
+# Number of spaces per indentation level when indent_style = "space".
+# Must be a positive integer.
+# Default: 8
+indent_width = 8
+
+# Align operands so the first operand column lines up across a block.
+# Default: true
+align_operands = true
+
+# Align end-of-line comments so comment markers line up across a block.
+# Default: true
+align_comments = true
+
+# Align trailing "\" continuation markers in multiline macro or define bodies.
+# Default: true
+align_continuations = true
+
+# Maximum number of consecutive blank lines to keep in output.
+# 0 means blank separator lines are removed.
+# 1 means keep at most one empty line between blocks, which matches the default behavior.
+# Must be a non-negative integer.
+max_blank_lines = 1
+
+# Split semicolon-separated statements onto separate lines when the detected
+# or forced source style treats ';' as a statement separator.
+# Default: true
+split_semicolon_statements = true
+
+# Insert a blank line before standalone comment lines when they begin a new comment block.
+# This affects formatter-introduced separation, not every original empty line.
+# Default: true
+newline_before_comments = true
+
+# Insert a blank line before labels and other level-0 instruction stream entries.
+# This keeps jump targets visually separated from the preceding block.
+# Default: true
+newline_before_labels = true
+
+# Force labels with trailing instructions onto their own line:
+#   before: loop: addi a0, a0, 1
+#   after:
+#     loop:
+#         addi a0, a0, 1
+#
+# When false, inline labels are preserved.
+# Default: true
+labels_always_on_own_line = true
+
+# Insert a space after line comment markers:
+#   true  -> // comment
+#   false -> //comment
+#
+# This also affects '#' and '@' when those markers are preserved.
+# Default: true
+line_comment_space = true
+
+# Rewrite a single-line block comment into a line comment when safe:
+#   /* comment */ -> // comment
+#
+# Multiline block comments remain block comments.
+# Default: true
+convert_single_line_block_comment = true
+
+# Choose how formatter-emitted line comments should be written.
+# Supported values:
+#   "preserve" - keep the original marker when possible (#, @, or //)
+#   "slash"    - normalize formatter-emitted line comments to //
+# Default: "preserve"
+preferred_comment_style = "preserve"
+
+# Control source-style detection.
+# Supported values:
+#   "auto"      - detect style heuristically. Default and recommended.
+#   "plan9"     - force Plan 9 / Go assembler behavior.
+#   "gas"       - force generic GAS behavior.
+#   "riscv-gas" - force RISC-V GAS behavior.
+#
+# This affects comment parsing, semicolon splitting, and instruction-stream
+# handling for lowercase mnemonics.
+source_style = "auto"

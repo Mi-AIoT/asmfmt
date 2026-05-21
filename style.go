@@ -16,6 +16,9 @@ const (
 )
 
 func (f *fstate) observeStyle(line string) {
+	if !f.detectStyle {
+		return
+	}
 	hint := detectSourceStyle(line)
 	switch {
 	case hint == styleUnknown:
@@ -116,7 +119,10 @@ func isStandaloneCommentLine(s string, style sourceStyle) (string, bool) {
 	return "", false
 }
 
-func shouldSplitSemicolonStatementsForStyle(s string, style sourceStyle) bool {
+func shouldSplitSemicolonStatementsForStyle(s string, style sourceStyle, enabled bool) bool {
+	if !enabled {
+		return false
+	}
 	if style == stylePlan9 {
 		return false
 	}

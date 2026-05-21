@@ -25,6 +25,7 @@ var (
 	write     = flag.Bool("w", false, "write result to (source) file instead of stdout")
 	doDiff    = flag.Bool("d", false, "display diffs instead of rewriting files")
 	allErrors = flag.Bool("e", false, "report all errors (not just the first 10 on different lines)")
+	config    = flag.String("config", "", "read formatting options from this TOML file")
 
 	// debugging
 	cpuprofile = flag.String("cpuprofile", "", "write cpu profile to this file")
@@ -61,7 +62,7 @@ func isAsmFile(f os.FileInfo) bool {
 }
 
 // If in == nil, the source is the contents of the file with the given filename.
-func processFile(filename string, in io.Reader, out io.Writer, stdin bool) error {
+func processFile(filename string, in io.Reader, out io.Writer, stdin bool, opts asmfmt.Options) error {
 	if in == nil {
 		f, err := os.Open(filename)
 		if err != nil {
@@ -76,7 +77,7 @@ func processFile(filename string, in io.Reader, out io.Writer, stdin bool) error
 		return err
 	}
 
-	res, err := asmfmt.Format(bytes.NewBuffer(src))
+	res, err := asmfmt.FormatWithOptions(bytes.NewBuffer(src), opts)
 	if err != nil {
 		return err
 	}
@@ -109,9 +110,9 @@ func processFile(filename string, in io.Reader, out io.Writer, stdin bool) error
 	return err
 }
 
-func visitFile(path string, f os.FileInfo, err error) error {
+func visitFile(path string, f os.FileInfo, err error, opts asmfmt.Options) error {
 	if err == nil && isAsmFile(f) {
-		err = processFile(path, nil, os.Stdout, false)
+		err = processFile(path, nil, os.Stdout, false, opts)
 	}
 	if err != nil {
 		report(err)
@@ -119,8 +120,10 @@ func visitFile(path string, f os.FileInfo, err error) error {
 	return nil
 }
 
-func walkDir(path string) {
-	filepath.Walk(path, visitFile)
+func walkDir(path string, opts asmfmt.Options) {
+	filepath.Walk(path, func(walkPath string, info os.FileInfo, err error) error {
+		return visitFile(walkPath, info, err, opts)
+	})
 }
 
 func main() {
@@ -134,6 +137,11 @@ func main() {
 func gofmtMain() {
 	flag.Usage = usage
 	flag.Parse()
+	resolver, err := newConfigResolver(*config)
+	if err != nil {
+		report(err)
+		return
+	}
 
 	if *cpuprofile != "" {
 		f, err := os.Create(*cpuprofile)
@@ -153,7 +161,12 @@ func gofmtMain() {
 			exitCode = 2
 			return
 		}
-		if err := processFile("<standard input>", os.Stdin, os.Stdout, true); err != nil {
+		opts, err := resolver.optionsForStdin()
+		if err != nil {
+			report(err)
+			return
+		}
+		if err := processFile("<standard input>", os.Stdin, os.Stdout, true, opts); err != nil {
 			report(err)
 		}
 		return
@@ -165,9 +178,19 @@ func gofmtMain() {
 		case err != nil:
 			report(err)
 		case dir.IsDir():
-			walkDir(path)
+			opts, err := resolver.optionsForDir(path)
+			if err != nil {
+				report(err)
+				continue
+			}
+			walkDir(path, opts)
 		default:
-			if err := processFile(path, nil, os.Stdout, false); err != nil {
+			opts, err := resolver.optionsForFile(path)
+			if err != nil {
+				report(err)
+				continue
+			}
+			if err := processFile(path, nil, os.Stdout, false, opts); err != nil {
 				report(err)
 			}
 		}

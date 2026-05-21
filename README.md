@@ -1,6 +1,8 @@
 # asmfmt
 Go Assembler Formatter
 
+English | [简体中文](README.zh.md)
+
 This will format your assembler code in a similar way that `gofmt` formats your Go code.
 
 Read Introduction: [asmfmt: Go Assembler Formatter](https://blog.klauspost.com/asmfmt-assembler-formatter/)
@@ -73,6 +75,8 @@ To automatically format assembler, in `.emacs` add:
 
 The flags are similar to `gofmt`, except it will only process `.s` files:
 ```
+	-config string
+		Read formatting options from this TOML file.
 	-d
 		Do not print reformatted sources to standard output.
 		If a file's formatting is different than asmfmt's, print diffs
@@ -89,6 +93,33 @@ The flags are similar to `gofmt`, except it will only process `.s` files:
 		with asmfmt's version.
 ```
 You should only run `asmfmt` on files that are assembler files. Assembler files cannot be positively identified, so it will mangle non-assembler files.
+
+# configuration
+
+`asmfmt` supports a single TOML configuration file for formatting behavior.
+
+You can load a config explicitly:
+
+```bash
+asmfmt -config /path/to/asmfmt.toml ./...
+```
+
+If `-config` is not provided, `asmfmt` automatically looks for the first matching file in this order:
+
+1. Project config: the nearest `.asmfmt.toml` found by walking upward from the formatted file's directory.
+2. User config: `~/.asmfmt.toml`
+3. Global config: `/etc/asmfmt.toml`
+
+Additional rules:
+
+* Only the first matching config is used.
+* Config files are not merged.
+* Directory formatting reuses the config found from the starting directory for the entire walk.
+* Standard input does not do project-directory lookup. It only checks `~/.asmfmt.toml` and `/etc/asmfmt.toml`, unless `-config` is provided.
+* Unknown fields and invalid values are treated as errors.
+* Unset fields keep the built-in defaults, so no config still matches historical behavior.
+
+A fully commented reference config is available in [.asmfmt.toml.example](.asmfmt.toml.example).
 
 # supported syntax
 
@@ -118,7 +149,7 @@ It intentionally does not:
 
 # style detection
 
-Dialect detection is internal and heuristic. There is no public flag to force a syntax mode.
+Dialect detection is internal and heuristic by default, but configuration can force a syntax mode.
 
 Current style hints are used to distinguish:
 
@@ -128,26 +159,52 @@ Current style hints are used to distinguish:
 
 These hints affect whether `#` or `@` starts a comment, whether `;` should split statements, and whether lowercase mnemonics are treated as instruction-stream commands. Detection is intentionally conservative to avoid breaking existing Plan 9 formatting.
 
+If you need deterministic behavior for a mixed codebase, set `source_style` in `.asmfmt.toml` to one of:
+
+* `auto`
+* `plan9`
+* `gas`
+* `riscv-gas`
+
 # formatting
 
+Default formatting behavior:
+
 * Automatic indentation.
-* It uses tabs for indentation and blanks for alignment.
-* It will remove trailing whitespace.
-* It will align the first parameter.
-* It will align all comments in a block.
-* It will eliminate multiple blank lines.
-* Removes `;` at end of line.
-* Forced newline before comments, except when preceded by label or another comment.
-* Forced newline before labels, except when preceded by comment.
-* Labels are on a separate lines, except for comments.
-* Retains block breaks (newline between blocks).
-* It will convert single line block comments to line comments.
-* Line comments have a space after `//`, except if comment starts with `+`.
-* There is always a space between parameters.
-* Macros in the same file are tracked, and not included in parameter indentation.
-* `TEXT`, `DATA` and `GLOBL`, `FUNCDATA`, `PCDATA` and labels are level 0 indentation.
-* Aligns `\` in multiline macros.
-* Whitespace before separating `;` is removed. Space is inserted after, if followed by another instruction.
+* Tabs for indentation and spaces for alignment.
+* Remove trailing whitespace.
+* Align the first parameter.
+* Align end-of-line comments in a block.
+* Eliminate repeated blank lines.
+* Remove `;` at end of line.
+* Insert a blank line before comment blocks, except when preceded by label or another comment block.
+* Insert a blank line before labels, except when preceded by comment-only structure that should stay attached.
+* Move labels to their own line, except for comment-only handling.
+* Retain block breaks between logical sections.
+* Convert single-line block comments to line comments.
+* Add a space after line comment markers, except in preserved special cases such as `//go:build`.
+* Keep a space between parameters.
+* Track macros in the same file and exclude them from normal parameter indentation heuristics.
+* Keep `TEXT`, `DATA`, `GLOBL`, `FUNCDATA`, `PCDATA`, and labels at level 0 indentation.
+* Align `\` in multiline macros.
+* Remove whitespace before separating `;`, and insert a space after `;` when followed by another instruction.
+
+Supported configuration keys:
+
+* `indent_style`: `tab` or `space`
+* `indent_width`: positive integer, used only when `indent_style = "space"`
+* `align_operands`: align the first operand column
+* `align_comments`: align end-of-line comments
+* `align_continuations`: align trailing `\` continuations
+* `max_blank_lines`: maximum consecutive blank lines to preserve
+* `split_semicolon_statements`: split `a; b` into separate statements when style permits
+* `newline_before_comments`: insert formatter-managed blank lines before comment blocks
+* `newline_before_labels`: insert formatter-managed blank lines before labels
+* `labels_always_on_own_line`: rewrite `label: instruction` into separate lines
+* `line_comment_space`: control whether `// comment` or `//comment` is emitted
+* `convert_single_line_block_comment`: control whether `/* comment */` becomes `// comment`
+* `preferred_comment_style`: `preserve` or `slash`
+* `source_style`: `auto`, `plan9`, `gas`, or `riscv-gas`
 
 # tests
 
