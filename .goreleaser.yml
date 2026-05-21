@@ -4,7 +4,7 @@ builds:
   -
     id: "asmfmt"
     binary: asmfmt
-    main: ./cmd/asmfmt/main.go
+    main: ./cmd/asmfmt
     env:
       - CGO_ENABLED=0
     flags:
