@@ -26,3 +26,5 @@ _testmain.go
 refdoc/
 
 asmfmt
+.asmfmt.toml
+*.asmfmt
