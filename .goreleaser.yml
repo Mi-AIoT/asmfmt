@@ -8,7 +8,7 @@ builds:
     env:
       - CGO_ENABLED=0
     flags:
-      - -ldflags=-s -w
+      - -ldflags=-s -w -X main.version={{.Version}} -X main.gitHash={{.Commit}} -X main.buildTime={{.Date}}
       - -trimpath
     goos:
       - aix
