@@ -181,7 +181,7 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
 - Verification:
   - documentation review
 - Commit:
-  - pending
+  - `36b2380` `docs: document gas support and test workflows`
 - Notes:
   - README now reflects the current GAS/RISC-V support envelope and the optional verification workflow
 
