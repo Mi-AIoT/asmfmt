@@ -6,6 +6,7 @@
 
 ## 1. 安装方式
 
+### 通过 Go 工具链编译安装
 使用 Go 工具链在本地构建并安装 CLI 工具：
 
 ```bash
@@ -13,6 +14,11 @@ go install github.com/Mi-AIoT/asmfmt/cmd/asmfmt@latest
 ```
 
 安装后，`asmfmt` 二进制文件会被放置于你的 `$GOPATH/bin`（通常是 `~/go/bin`）目录下。请确保该目录已加入到系统的 `PATH` 环境路径中。
+
+### 预构建二进制文件下载
+此外，您也可以直接在 GitHub Releases 页面下载针对不同系统和架构编译好的二进制文件：
+* **稳定版本 (Stable Releases)**: 您可以在 [Releases](https://github.com/Mi-AIoT/asmfmt/releases) 页面下载正式发布的稳定版本（如 `v2.0.0`）。
+* **测试版本 (Beta / Nightly Builds)**: 每次 `master` 分支的提交在 CI 中构建成功后，都会自动生成最新的测试版本，并强制更新发布到 [`beta` 预发布标签](https://github.com/Mi-AIoT/asmfmt/releases/tag/beta) 下。您可以通过该标签获取最新的 master 分支功能。
 
 ---
 

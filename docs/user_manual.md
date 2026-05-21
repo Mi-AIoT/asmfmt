@@ -6,6 +6,7 @@
 
 ## 1. Installation
 
+### From Go Toolchain
 Build and install the CLI tool locally using the Go toolchain:
 
 ```bash
@@ -13,6 +14,11 @@ go install github.com/Mi-AIoT/asmfmt/cmd/asmfmt@latest
 ```
 
 This installs the `asmfmt` binary into your `$GOPATH/bin` (typically `~/go/bin`) directory. Ensure this directory is added to your system `PATH` environment variable.
+
+### Pre-built Binaries
+Alternatively, you can download pre-built binaries directly from the GitHub Releases page:
+* **Stable Releases**: Official stable releases (e.g. `v2.0.0`) are available on the [Releases](https://github.com/Mi-AIoT/asmfmt/releases) page.
+* **Beta / Nightly Builds**: The latest successful build of the `master` branch is available under the [`beta` pre-release](https://github.com/Mi-AIoT/asmfmt/releases/tag/beta). This release is automatically updated on every successful commit to the `master` branch.
 
 ---
 

@@ -105,3 +105,50 @@ jobs:
 
     - name: Semantic Equivalence
       run: go test -run TestOptionalSemanticEquivalence -v ./...
+
+  deploy-beta:
+    name: Deploy Beta Release
+    needs: [build, build-special, semantic-riscv]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Download snapshot artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: asmfmt-snapshot-${{ github.sha }}
+          path: dist
+
+      - name: Update Beta Tag
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f beta
+          git push -f origin beta
+
+      - name: Release Beta
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: beta
+          name: "Beta / Nightly Build"
+          body: |
+            This is an automated pre-release build of the `master` branch.
+
+            It is automatically built and updated on every successful commit to `master`.
+
+            **Commit:** ${{ github.sha }}
+          prerelease: true
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/*.deb
+            dist/*.rpm
+            dist/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
