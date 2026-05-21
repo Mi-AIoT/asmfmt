@@ -9,7 +9,7 @@
 	addi \reg, \reg, %lo(\sym) # macro relocation
 .endm
 foo:
-	addi a0, a0, 1        # increment
+	addi a0, a0, 1 # increment
 	lui  a1, %hi(msg + 1)
 1:
 	auipc a0, %pcrel_hi(msg + 1)

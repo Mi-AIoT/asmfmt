@@ -620,3 +620,17 @@ func TestCommentedPreprocessorIndentation(t *testing.T) {
 		t.Fatalf("TestCommentedPreprocessorIndentation got:\n%s\nwant:\n%s", got, want)
 	}
 }
+
+func TestCommentAlignmentWithLongNoCommentLine(t *testing.T) {
+	input := "foo:\n\tSTL_CHECK_CRC_XPR STL_CORE_EXU_ISA_P_SIG0, STL_CORE_EXU_ISA_P_SIG1\n\tSTL_ASSEMBLE_RESTORE_CONTEXT // restore integer register and set stl status\n"
+	opts := DefaultOptions()
+	opts.SourceStyle = "riscv-gas"
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "foo:\n\tSTL_CHECK_CRC_XPR STL_CORE_EXU_ISA_P_SIG0, STL_CORE_EXU_ISA_P_SIG1\n\tSTL_ASSEMBLE_RESTORE_CONTEXT // restore integer register and set stl status\n"
+	if string(got) != want {
+		t.Fatalf("TestCommentAlignmentWithLongNoCommentLine got:\n%s\nwant:\n%s", got, want)
+	}
+}

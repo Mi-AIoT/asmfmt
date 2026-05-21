@@ -592,6 +592,7 @@ func (f *fstate) flush() {
 		}
 	}
 	f.comments = nil
+	f.opts.sourceStyle = f.style
 	s := formatStatements(f.queued, f.opts)
 	for _, line := range s {
 		f.indent()
@@ -1152,6 +1153,9 @@ func (st *statement) cleanParams() {
 // as a separate string.
 // Comments and line-continuation (\) are aligned with spaces.
 func formatStatements(s []statement, opts normalizedOptions) []string {
+	if opts.sourceStyle == styleGas || opts.sourceStyle == styleRiscvGas {
+		return formatStatementsCustom(s, opts)
+	}
 	if opts.alignOperands && opts.alignComments && opts.alignContinuations && opts.lineCommentSpace && opts.preferredCommentStyle == "preserve" {
 		return formatStatementsDefault(s)
 	}
@@ -1257,9 +1261,11 @@ func formatStatementsCustom(s []statement, opts normalizedOptions) []string {
 		if x.contComment {
 			continue
 		}
-		l := len([]rune(renderStatementCode(x, maxInstr, opts)))
-		if l > maxCodeLen {
-			maxCodeLen = l
+		if len(x.comment) > 0 || x.continued {
+			l := len([]rune(renderStatementCode(x, maxInstr, opts)))
+			if l > maxCodeLen {
+				maxCodeLen = l
+			}
 		}
 	}
 
