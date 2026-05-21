@@ -1,0 +1,6 @@
+.text
+.type foo, @function
+foo:
+	mov r0, r1     @ arm gas comment
+	add r0, r1, #1
+	bx  lr

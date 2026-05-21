@@ -157,7 +157,7 @@ func TestFindLineComment(t *testing.T) {
 		{`addi a0, a0, 1 /* # not comment */ # comment`, 35, "#"},
 	}
 	for _, tt := range tests {
-		pos, mark := findLineComment(tt.line)
+		pos, mark := findLineComment(tt.line, styleRiscvGas)
 		if pos != tt.pos || mark != tt.mark {
 			t.Fatalf("findLineComment(%q) = %d, %q; want %d, %q", tt.line, pos, mark, tt.pos, tt.mark)
 		}
@@ -190,7 +190,7 @@ func TestGasParamSplitting(t *testing.T) {
 }
 
 func TestSplitStatements(t *testing.T) {
-	got := splitStatements(`addi a0, a0, 1; ret # done`)
+	got := splitStatements(`addi a0, a0, 1; ret # done`, styleRiscvGas)
 	want := []string{`addi a0, a0, 1`, `ret # done`}
 	if strings.Join(got, "|") != strings.Join(want, "|") {
 		t.Fatalf("splitStatements = %#v; want %#v", got, want)
@@ -264,5 +264,43 @@ func TestUnknownDirectivePreservesText(t *testing.T) {
 	}
 	if string(got) != input {
 		t.Fatalf("Format unknown directive:\n%s", got)
+	}
+}
+
+func TestSourceStyleDetection(t *testing.T) {
+	tests := []struct {
+		line string
+		want sourceStyle
+	}{
+		{`TEXT runtime·memmove(SB), NOSPLIT, $4-12`, stylePlan9},
+		{`.type foo, @function`, styleGas},
+		{`addi a0, a0, 1 # inc`, styleRiscvGas},
+		{`mov r0, r1 @ comment`, styleGas},
+	}
+	for _, tt := range tests {
+		if got := detectSourceStyle(tt.line); got != tt.want {
+			t.Fatalf("detectSourceStyle(%q) = %v; want %v", tt.line, got, tt.want)
+		}
+	}
+}
+
+func TestAtLineCommentStyle(t *testing.T) {
+	pos, mark := findLineComment(`mov r0, r1 @ comment`, styleGas)
+	if pos < 0 || mark != "@" {
+		t.Fatalf("gas @ comment not detected: %d %q", pos, mark)
+	}
+	pos, mark = findLineComment(`.type foo, @function`, styleGas)
+	if pos != -1 || mark != "" {
+		t.Fatalf(".type @function misdetected: %d %q", pos, mark)
+	}
+	pos, mark = findLineComment(`add r0, r1, #1`, styleGas)
+	if pos != -1 || mark != "" {
+		t.Fatalf("ARM immediate misdetected: %d %q", pos, mark)
+	}
+}
+
+func TestPlan9SemicolonsStayInline(t *testing.T) {
+	if shouldSplitSemicolonStatementsForStyle(`REP; MOVSL`, stylePlan9) {
+		t.Fatal("plan9 semicolon unexpectedly split")
 	}
 }

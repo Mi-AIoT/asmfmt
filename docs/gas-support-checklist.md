@@ -119,10 +119,10 @@ Goal: distinguish Plan 9 / Go assembler inputs from GAS-like inputs without chan
 
 Deliverables:
 
-- [ ] Add internal style detection for Plan 9, GAS-like, and RISC-V GAS hints.
-- [ ] Use style hints to decide `#`, `@`, and `;` treatment.
-- [ ] Keep existing Plan 9 fixtures stable.
-- [ ] Add regression fixtures for ARM immediates, `.type ... @function`, ARM `@` comments, and RISC-V semicolon separators.
+- [x] Add internal style detection for Plan 9, GAS-like, and RISC-V GAS hints.
+- [x] Use style hints to decide `#`, `@`, and `;` treatment.
+- [x] Keep existing Plan 9 fixtures stable.
+- [x] Add regression fixtures for ARM immediates, `.type ... @function`, ARM `@` comments, and RISC-V semicolon separators.
 
 Suggested commit split:
 

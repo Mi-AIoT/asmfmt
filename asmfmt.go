@@ -46,6 +46,7 @@ type fstate struct {
 	gasBlock      int
 	inMacro       bool
 	altMacro      bool
+	style         sourceStyle
 	queued        []statement
 	comments      []string
 	defines       map[string]struct{}
@@ -109,9 +110,10 @@ func (f *fstate) addLine(b []byte) error {
 		}
 	}
 	s = strings.TrimSpace(s)
+	f.observeStyle(s)
 
 	// Comment is the only line content.
-	if strings.HasPrefix(s, "//") || (strings.HasPrefix(s, "#") && !isPreProcessorInstruction(strings.Fields(s)[0])) {
+	if mark, ok := isStandaloneCommentLine(s, f.style); ok {
 		// Non-comment content is now added.
 		defer func() {
 			f.anyContents = true
@@ -119,10 +121,6 @@ func (f *fstate) addLine(b []byte) error {
 			f.lastStar = false
 		}()
 
-		mark := "//"
-		if strings.HasPrefix(s, "#") {
-			mark = "#"
-		}
 		s = strings.TrimPrefix(s, mark)
 		if len(f.queued) > 0 {
 			f.flush()
@@ -230,8 +228,8 @@ exitcomm:
 		return f.out.WriteByte('\n')
 	}
 
-	if !f.inMacro && shouldSplitSemicolonStatements(s) {
-		parts := splitStatements(s)
+	if !f.inMacro && shouldSplitSemicolonStatementsForStyle(s, f.style) {
+		parts := splitStatements(s, f.style)
 		if len(parts) > 1 {
 			for _, part := range parts {
 				if err := f.addLine([]byte(part)); err != nil {
@@ -256,7 +254,7 @@ exitcomm:
 	} else if f.inMacro && isMacroBodyText(s) {
 		st = &statement{instruction: s, function: true}
 	} else {
-		st = newStatement(s, f.defines)
+		st = newStatementWithStyle(s, f.defines, f.style)
 	}
 	if st == nil {
 		return nil
@@ -410,6 +408,10 @@ func (f *fstate) newLine() {
 // newStatement will parse a line and return it as a statement.
 // Will return nil if the line is empty after whitespace removal.
 func newStatement(s string, defs map[string]struct{}) *statement {
+	return newStatementWithStyle(s, defs, styleUnknown)
+}
+
+func newStatementWithStyle(s string, defs map[string]struct{}, style sourceStyle) *statement {
 	s = strings.TrimSpace(s)
 	st := statement{}
 
@@ -422,7 +424,7 @@ func newStatement(s string, defs map[string]struct{}) *statement {
 	// Fix where a comment start if any.
 	// We need to make sure that the comment isn't embedded in a string literal.
 	if !isPreProcessorInstruction(fields[0]) {
-		if startcom, mark := findLineComment(s); startcom > 0 {
+		if startcom, mark := findLineComment(s, style); startcom > 0 {
 			st.comment = strings.TrimSpace(s[startcom+len(mark):])
 			st.commentMark = mark
 			s = strings.TrimSpace(s[:startcom])
@@ -883,7 +885,7 @@ func (st statement) lineCommentMark() string {
 	return "//"
 }
 
-func findLineComment(s string) (int, string) {
+func findLineComment(s string, style sourceStyle) (int, string) {
 	inStringLiteral := false
 	inCharLiteral := false
 	inBlockComment := false
@@ -910,8 +912,12 @@ func findLineComment(s string) (int, string) {
 				inBlockComment = true
 			}
 		case '#':
-			if !inStringLiteral && !inCharLiteral && !inBlockComment && isHashLineComment(s, i) {
+			if !inStringLiteral && !inCharLiteral && !inBlockComment && hashStartsComment(s, i, style) {
 				return i, "#"
+			}
+		case '@':
+			if !inStringLiteral && !inCharLiteral && !inBlockComment && atStartsComment(s, i, style) {
+				return i, "@"
 			}
 		}
 		last = r
@@ -953,7 +959,7 @@ func findBlockCommentStart(s string) int {
 	return -1
 }
 
-func splitStatements(s string) []string {
+func splitStatements(s string, style sourceStyle) []string {
 	var parts []string
 	inStringLiteral := false
 	inCharLiteral := false
@@ -982,7 +988,11 @@ func splitStatements(s string) []string {
 				inBlockComment = true
 			}
 		case '#':
-			if !inStringLiteral && !inCharLiteral && !inBlockComment && isHashLineComment(s, i) {
+			if !inStringLiteral && !inCharLiteral && !inBlockComment && hashStartsComment(s, i, style) {
+				return appendSemicolonPart(parts, s[start:])
+			}
+		case '@':
+			if !inStringLiteral && !inCharLiteral && !inBlockComment && atStartsComment(s, i, style) {
 				return appendSemicolonPart(parts, s[start:])
 			}
 		case ';':
@@ -1001,19 +1011,7 @@ func splitStatements(s string) []string {
 }
 
 func shouldSplitSemicolonStatements(s string) bool {
-	if strings.HasPrefix(s, "#") || !strings.Contains(s, ";") || strings.HasSuffix(strings.TrimSpace(s), `\`) {
-		return false
-	}
-	fields := strings.Fields(s)
-	if len(fields) == 0 {
-		return false
-	}
-	inst := fields[0]
-	if strings.HasPrefix(inst, ".") {
-		return true
-	}
-	r, _ := utf8.DecodeRuneInString(inst)
-	return unicode.IsLower(r)
+	return shouldSplitSemicolonStatementsForStyle(s, styleUnknown)
 }
 
 func appendSemicolonPart(parts []string, s string) []string {

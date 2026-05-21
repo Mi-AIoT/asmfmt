@@ -103,3 +103,36 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
 - Remaining roadmap increments:
   - Step 5 source-style detection
   - Step 6 RISC-V fixture completion
+
+### Step 5: Source-Style Detection
+
+- Status: completed
+- Scope:
+  - added internal source-style detection for Plan 9, generic GAS, and RISC-V GAS
+  - wired style hints into standalone comment-line handling, inline comment detection, and semicolon splitting
+  - added explicit `@` line-comment support for GAS-style inputs without breaking `.type foo, @function`
+  - kept public API unchanged; style stays an internal formatter state
+  - added regression fixtures:
+    - `testdata/gas_style_arm.*`
+    - `testdata/gas_style_riscv_semicolon.*`
+  - added unit coverage for style detection and Plan 9 semicolon policy
+- Verification:
+  - `go test -run TestRewrite -update`
+  - `go test ./...`
+  - `go vet ./...`
+- Commit:
+  - pending
+- Notes:
+  - Plan 9 behavior remains guarded by defaulting to the first strong style hint and only upgrading `gas` to `riscv-gas`
+
+## Current Progress Summary
+
+- Completed roadmap increments:
+  - Step 0 planning and tracking
+  - Step 1 lexer infrastructure
+  - Step 2 macro and altmacro handling
+  - Step 3 expression-safe operand handling
+  - Step 4 directive coverage expansion
+  - Step 5 source-style detection
+- Remaining roadmap increments:
+  - Step 6 RISC-V fixture completion
