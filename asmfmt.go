@@ -499,13 +499,19 @@ func newStatement(s string, defs map[string]struct{}) *statement {
 // There will be a space after ",", unless inside a comment.
 // A tab is replaced by a space for consistent indentation.
 func (st *statement) setParams(s string) {
-	st.params = make([]string, 0)
+	st.params = splitParams(s, st.usesGasParams(), st.isPreProcessor())
+	if st.instruction == ".macro" {
+		st.params = mergeMacroVarargParams(st.params)
+	}
+}
+
+func splitParams(s string, trackDepth, preserveTabs bool) []string {
+	params := make([]string, 0)
 	runes := []rune(s)
 	last := rune(0)
 	inComment := false
 	inStringLiteral := false
 	inCharLiteral := false
-	trackDepth := st.usesGasParams()
 	depth := 0
 	out := make([]rune, 0, len(runes))
 	for _, r := range runes {
@@ -528,7 +534,7 @@ func (st *statement) setParams(s string) {
 			}
 			c := strings.TrimSpace(string(out))
 			if len(c) > 0 {
-				st.params = append(st.params, c)
+				params = append(params, c)
 			}
 			out = out[0:0]
 			continue
@@ -549,7 +555,7 @@ func (st *statement) setParams(s string) {
 				depth--
 			}
 		case '\t':
-			if !st.isPreProcessor() {
+			if !preserveTabs {
 				r = ' '
 			}
 		case ';':
@@ -568,11 +574,9 @@ func (st *statement) setParams(s string) {
 	}
 	c := strings.TrimSpace(string(out))
 	if len(c) > 0 {
-		st.params = append(st.params, c)
+		params = append(params, c)
 	}
-	if st.instruction == ".macro" {
-		st.params = mergeMacroVarargParams(st.params)
-	}
+	return params
 }
 
 func mergeMacroVarargParams(params []string) []string {

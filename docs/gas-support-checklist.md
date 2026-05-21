@@ -69,16 +69,16 @@ Goal: avoid corrupting complex GAS expressions while keeping top-level comma spl
 
 Deliverables:
 
-- [ ] Add a lightweight expression scanner for grouping.
-- [ ] Track nesting for parentheses, brackets, braces, and relocation-like calls.
-- [ ] Preserve expression spelling unless a specific formatting rule is covered by tests.
-- [ ] Add coverage for:
-  - [ ] decimal / hex / octal / binary
-  - [ ] signed numbers
-  - [ ] character constants
-  - [ ] `1b` / `1f`
-  - [ ] current-location symbol `.`
-- [ ] Add fixtures for `. - symbol`, symbol arithmetic, nested relocation calls, and comment boundaries.
+- [x] Add a lightweight expression scanner for grouping.
+- [x] Track nesting for parentheses, brackets, braces, and relocation-like calls.
+- [x] Preserve expression spelling unless a specific formatting rule is covered by tests.
+- [x] Add coverage for:
+  - [x] decimal / hex / octal / binary
+  - [x] signed numbers
+  - [x] character constants
+  - [x] `1b` / `1f`
+  - [x] current-location symbol `.`
+- [x] Add fixtures for `. - symbol`, symbol arithmetic, nested relocation calls, and comment boundaries.
 
 Suggested commit split:
 

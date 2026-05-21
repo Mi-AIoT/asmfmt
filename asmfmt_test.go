@@ -173,6 +173,10 @@ func TestGasParamSplitting(t *testing.T) {
 		{`ld a0, %pcrel_lo(1b)(a0)`, []string{"a0", "%pcrel_lo(1b)(a0)"}},
 		{`.insn r 0x33, 0, 0, a0, a1, a2`, []string{"r 0x33", "0", "0", "a0", "a1", "a2"}},
 		{`.macro load reg:req, values:vararg`, []string{"load reg:req", "values:vararg"}},
+		{`.set delta, . - symbol`, []string{"delta", ". - symbol"}},
+		{`.word symbol1 - symbol2 + (1 << 4)`, []string{"symbol1 - symbol2 + (1 << 4)"}},
+		{`.reloc 0, R_RISCV_PCREL_LO12_I, nested(%pcrel_hi(sym + 4))`, []string{"0", "R_RISCV_PCREL_LO12_I", "nested(%pcrel_hi(sym + 4))"}},
+		{`.byte '\n', '.', -1, 0x10`, []string{`'\n'`, `'.'`, `-1`, `0x10`}},
 	}
 	for _, tt := range tests {
 		st := newStatement(tt.line, nil)

@@ -50,3 +50,20 @@ This log tracks actual implementation progress against `docs/gas-support-plan.md
   - pending
 - Notes:
   - `testdata/riscv_gas.golden` intentionally changed inside a macro body: `lui  \reg, ...` became `lui \reg, ...` because macro body instructions are now preserved instead of alignment-normalized
+
+### Step 3: Expression-Safe Operand Handling
+
+- Status: completed
+- Scope:
+  - extracted parameter splitting into a dedicated scanner helper instead of embedding the depth-tracking loop directly inside `statement.setParams`
+  - kept the scanner grouping-aware for parentheses, brackets, braces, strings, chars, block comments, and semicolon text normalization
+  - expanded unit coverage for current-location expressions, relocation calls, signed numbers, local numeric labels, and character constants
+  - added `testdata/gas_expressions.in` / `.golden` to lock down complex GAS expression formatting
+- Verification:
+  - `go test -run TestRewrite -update`
+  - `go test ./...`
+  - `go vet ./...`
+- Commit:
+  - pending
+- Notes:
+  - a stronger case with inline block comments inside operand lists was intentionally deferred; current formatter still treats those comments as structural boundaries, so this step keeps the fixture focused on expression grouping rather than comment fusion

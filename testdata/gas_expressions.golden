@@ -1,0 +1,10 @@
+.text
+expr:
+.set delta, . - symbol
+.word symbol1 - symbol2 + (1 << 4)
+	ld a0, %pcrel_lo(1b)(a0)
+
+1:
+.reloc 0, R_RISCV_PCREL_LO12_I, nested(%pcrel_hi(sym + 4))
+.byte '\n', '.', -1, 0x10
+.word (symbol3 + 8), symbol4 # boundary
