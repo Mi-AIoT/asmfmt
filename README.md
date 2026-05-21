@@ -145,7 +145,7 @@ Supported config keys:
 * `indent_style`: `tab` or `space`
 * `indent_width`: positive integer, used when `indent_style = "space"`
 * `align_operands`
-* `align_comments`
+* `align_comments`: boolean. In GAS style, comment alignment is only calculated from lines with comments to prevent long comment-less lines from throwing off alignment.
 * `align_continuations`
 * `max_blank_lines`
 * `split_semicolon_statements`

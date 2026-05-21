@@ -142,7 +142,7 @@ align_comments = true
 * `indent_style`：`tab` 或 `space`
 * `indent_width`：正整数，仅在 `indent_style = "space"` 时生效
 * `align_operands`
-* `align_comments`
+* `align_comments`：布尔值。在 GAS 风格中，注释对齐仅根据带有注释的行计算，以防止没有注释的长指令行破坏对齐。
 * `align_continuations`
 * `max_blank_lines`
 * `split_semicolon_statements`
@@ -153,6 +153,7 @@ align_comments = true
 * `convert_single_line_block_comment`
 * `preferred_comment_style`：`preserve` 或 `slash`
 * `source_style`：`auto`、`plan9`、`gas` 或 `riscv-gas`
+* `indent_gas_directives`：布尔值，是否将零缩进的 GAS directive 缩进到指令级别。默认值为 `false`。
 
 完整注释版配置参考见 [.asmfmt.toml.example](.asmfmt.toml.example)。
 
