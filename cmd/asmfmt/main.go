@@ -81,6 +81,8 @@ func initVersion() {
 }
 
 func usage() {
+	initVersion()
+	fmt.Fprintf(os.Stderr, "asmfmt version: %s (commit: %s, built: %s)\n\n", version, gitHash, buildTime)
 	fmt.Fprintf(os.Stderr, "usage: asmfmt [flags] [path ...]\n\n")
 	fmt.Fprintf(os.Stderr, "asmfmt formats Go/Plan 9, GAS, and RISC-V assembly source files.\n")
 	fmt.Fprintf(os.Stderr, "If no paths are provided, it reads from standard input and writes to standard output.\n\n")
