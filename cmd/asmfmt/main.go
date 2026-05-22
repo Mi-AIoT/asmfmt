@@ -139,6 +139,9 @@ func processFile(filename string, in io.Reader, out io.Writer, stdin bool, opts 
 
 	if !bytes.Equal(src, res) {
 		// formatting has changed
+		if *list || *doDiff {
+			exitCode = 1
+		}
 		if *list {
 			fmt.Fprintln(out, filename)
 		}

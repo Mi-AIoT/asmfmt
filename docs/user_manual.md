@@ -46,9 +46,11 @@ When running `asmfmt -h` or `asmfmt --help`, the tool prints version information
 
 #### `-d`
 * **Description**: Prints formatting changes as a unified diff to standard output without modifying the source files.
+* **Exit Code**: Exits with code `1` if any formatting differences are detected.
 
 #### `-l`
 * **Description**: Lists only the filenames of files whose formatting differs from `asmfmt` standards, without outputting any formatted content.
+* **Exit Code**: Exits with code `1` if any formatting differences are detected.
 * **Use Case**: Commonly used in CI static check pipelines to block non-compliant code submissions.
 * **Example**:
   ```bash

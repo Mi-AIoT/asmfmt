@@ -344,3 +344,56 @@ func TestCLIUpgradeOptionInvalid(t *testing.T) {
 		t.Fatalf("expected error message to contain HTTP 404 or Not Found error, got: %s", errStr)
 	}
 }
+
+func TestCLIExitCodeOnDiff(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "input.s")
+
+	// Unformatted code (needs formatting: space inside comma, indentation)
+	unformatted := "TEXT foo(SB),$0\nMOVQ AX,BX\n"
+
+	// 1. Check with -d (should exit with code 1, and print diff)
+	writeFile(t, src, unformatted)
+	stdout, stderr, err := runCLI(t, root, nil, nil, "-d", src)
+	if err == nil {
+		t.Fatalf("expected non-zero exit code with -d on unformatted file, got 0")
+	}
+	if !strings.Contains(stdout, "diff") {
+		t.Fatalf("expected stdout to contain diff, got: %q", stdout)
+	}
+
+	// 2. Check with -l (should exit with code 1, and print filename)
+	writeFile(t, src, unformatted)
+	stdout, stderr, err = runCLI(t, root, nil, nil, "-l", src)
+	if err == nil {
+		t.Fatalf("expected non-zero exit code with -l on unformatted file, got 0")
+	}
+	if !strings.Contains(stdout, "input.s") {
+		t.Fatalf("expected stdout to contain input.s, got: %q", stdout)
+	}
+
+	// 3. Run without -d or -l or -w (should exit with 0, and print formatted code to stdout)
+	writeFile(t, src, unformatted)
+	stdout, stderr, err = runCLI(t, root, nil, nil, src)
+	if err != nil {
+		t.Fatalf("unexpected error without diff flags: %v\nstderr:\n%s", err, stderr)
+	}
+	expectedFormatted := "TEXT foo(SB), $0\n\tMOVQ AX, BX\n"
+	if stdout != expectedFormatted {
+		t.Fatalf("unexpected formatted output: got %q, want %q", stdout, expectedFormatted)
+	}
+
+	// 4. Run with -w (should exit with 0, and modify file in-place)
+	writeFile(t, src, unformatted)
+	stdout, stderr, err = runCLI(t, root, nil, nil, "-w", src)
+	if err != nil {
+		t.Fatalf("unexpected error with -w: %v\nstderr:\n%s", err, stderr)
+	}
+	fileBytes, err := os.ReadFile(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(fileBytes) != expectedFormatted {
+		t.Fatalf("expected file to be formatted in-place, got %q", string(fileBytes))
+	}
+}
