@@ -121,6 +121,17 @@ asmfmt -config /path/to/asmfmt.toml ./...
 
 完整注释版配置参考见 [.asmfmt.toml.example](.asmfmt.toml.example)。
 
+## 代码风格检查 (Linter)
+
+`asmfmt` 内置了代码风格检查器，可对汇编文件进行 RISC-V 和通用 GAS 代码规范检查。
+
+使用 `-lint` 选项运行风格检查：
+```bash
+asmfmt -lint path/to/file.s
+```
+
+您可以在 `.asmfmt.toml` 的 `[lint]` 部分中配置规则及其严重级别。有关规则列表，请参见 [代码风格检查规则参考手册](docs/lint_rules_zh.md)；有关配置详细说明，请参阅 [用户手册](docs/user_manual_zh.md)。
+
 ## 支持的语法
 
 `asmfmt` 主要面向 Go / Plan 9 汇编，同时也支持一部分保守处理的 GAS 风格语法。

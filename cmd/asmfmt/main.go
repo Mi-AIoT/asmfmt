@@ -39,6 +39,7 @@ var (
 
 	// debugging
 	cpuprofile = flag.String("cpuprofile", "", "write CPU profile to file (primarily for debugging and performance analysis)")
+	lintFlag   = flag.Bool("lint", false, "check style rules and report violations")
 )
 
 const (
@@ -130,6 +131,24 @@ func processFile(filename string, in io.Reader, out io.Writer, stdin bool, opts 
 	src, err := ioutil.ReadAll(in)
 	if err != nil {
 		return err
+	}
+
+	if *lintFlag {
+		problems, err := asmfmt.Lint(filename, bytes.NewBuffer(src), opts)
+		if err != nil {
+			return err
+		}
+		hasError := false
+		for _, p := range problems {
+			fmt.Fprintln(os.Stderr, p)
+			if p.Severity == "error" {
+				hasError = true
+			}
+		}
+		if hasError && exitCode == 0 {
+			exitCode = 1
+		}
+		return nil
 	}
 
 	res, err := asmfmt.FormatWithOptions(bytes.NewBuffer(src), opts)

@@ -114,3 +114,63 @@ source_style = "auto"
 #   false - keep directives at level 0 (unless inside a block/macro)
 # Default: false
 #indent_gas_directives = false
+
+
+# ==============================================================================
+# Lint Options
+# ==============================================================================
+# Configure style linter rules and severity levels: "error", "warning", or "ignore".
+# The options below reflect their default values.
+[lint]
+# Registers and Instructions (L1xx)
+#abi_registers = "error"
+#compressed_instructions = "error"
+#operation_immediate = "error"
+#relocation_operator_spacing = "error"
+#gp_load_relaxation = "error"
+#csr_names = "error"
+#jump_instruction_selection = "warning"
+#pcrel_relocation_label = "error"
+
+# Directive Usage (L2xx)
+#alignment_directives = "error"
+#extern_directive = "error"
+#inline_binary_directives = "warning"
+#avoid_globl = "error"
+#leb128_constant_expression = "error"
+#avoid_space_skip_directives = "error"
+#operator_precedence_parentheses = "warning"
+#end_directive_last = "error"
+
+# Structure and Formatting (L3xx)
+#local_labels = "warning"
+#current_point_label = "error"
+#pointer_offset_shorthand = "warning"
+#option_push_pop = "error"
+#symbol_preamble_footer = "warning"
+#cfi_start_end_balance = "warning"
+#macro_balance = "warning"
+#instruction_sequence_termination = "warning"
+#function_doxygen_comment = "warning"
+#avoid_hash_and_at_comments = "warning"
+#double_label_declaration = "error"
+#reserved_label_names = "error"
+#unreachable_code = "error"
+#single_return_statement = "warning"
+#no_fallthrough_to_function = "warning"
+#no_jump_out_of_function = "error"
+#no_recursive_calls = "error"
+#copyright_and_license = "warning"
+#developer_name_length = "error"
+#line_length_limit = "warning"
+
+# Casing Style Options
+# label_naming_style: target case pattern for labels.
+# Supported values: "snake_case", "camelCase", "PascalCase", "any".
+# Default: "snake_case"
+#label_naming_style = "snake_case"
+
+# macro_naming_style: target case pattern for macros.
+# Supported values: "UPPER_SNAKE_CASE", "snake_case", "any".
+# Default: "UPPER_SNAKE_CASE"
+#macro_naming_style = "UPPER_SNAKE_CASE"

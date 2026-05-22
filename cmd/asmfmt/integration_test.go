@@ -397,3 +397,49 @@ func TestCLIExitCodeOnDiff(t *testing.T) {
 		t.Fatalf("expected file to be formatted in-place, got %q", string(fileBytes))
 	}
 }
+
+func TestCLILint(t *testing.T) {
+	root := t.TempDir()
+	src := filepath.Join(root, "input.s")
+
+	// 1. Valid code (should pass with exit code 0, no output)
+	validCode := "// Copyright\n// SPDX-License-Identifier: Apache\n\taddi a0, a1, 1\n\tret\n"
+	writeFile(t, src, validCode)
+	stdout, stderr, err := runCLI(t, root, nil, nil, "-lint", src)
+	if err != nil {
+		t.Fatalf("expected valid file to pass linting, got err: %v\nstderr:\n%s", err, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("expected no stderr output, got: %q", stderr)
+	}
+
+	// 2. Invalid code (should fail with exit code 1, print violation to stderr)
+	invalidCode := "// Copyright\n// SPDX-License-Identifier: Apache\n\taddi a0, a1, 1\n\taddi x10, x11, 1\n\tret\n"
+	writeFile(t, src, invalidCode)
+	stdout, stderr, err = runCLI(t, root, nil, nil, "-lint", src)
+	if err == nil {
+		t.Fatalf("expected invalid file to fail linting, but got exit code 0")
+	}
+	if stdout != "" {
+		t.Fatalf("expected stdout to be empty, got: %q", stdout)
+	}
+	if !strings.Contains(stderr, "[L101][abi_registers]") {
+		t.Fatalf("expected stderr to contain rule L101 violation, got: %q", stderr)
+	}
+	expectedFormatSub := "input.s:4: [L101][abi_registers] register \"x10\" should be replaced with its ABI name (error)"
+	if !strings.Contains(stderr, expectedFormatSub) {
+		t.Fatalf("expected stderr to contain format %q, got: %q", expectedFormatSub, stderr)
+	}
+
+	// 3. Invalid code via stdin
+	stdout, stderr, err = runCLI(t, root, nil, []byte(invalidCode), "-lint")
+	if stdout != "" {
+		t.Fatalf("expected stdin stdout to be empty, got: %q", stdout)
+	}
+	if err == nil {
+		t.Fatalf("expected stdin invalid code to fail linting, but got exit code 0")
+	}
+	if !strings.Contains(stderr, "<standard input>:4: [L101][abi_registers]") {
+		t.Fatalf("expected stdin stderr to contain <standard input>:4: [L101][abi_registers], got: %q", stderr)
+	}
+}

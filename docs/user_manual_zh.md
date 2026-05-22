@@ -116,6 +116,15 @@ asmfmt [flags] [path ...]
 
 ---
 
+### 代码风格检查配置 (`[lint]`)
+
+代码风格检查选项可以在 `[lint]` 部分指定。每个规则名称都可以配置为 `"error"`、`"warning"` 或 `"ignore"`。
+
+* **`label_naming_style`**：`"snake_case"`, `"camelCase"`, `"PascalCase"`, 或 `"any"`（跳过命名检查）。默认值为 `"snake_case"`。
+* **`macro_naming_style`**：`"UPPER_SNAKE_CASE"`, `"snake_case"`, 或 `"any"`（跳过命名检查）。默认值为 `"UPPER_SNAKE_CASE"`。
+
+完整的规则列表和示例，请参阅 [代码风格检查规则参考手册](lint_rules_zh.md)。
+
 ## 4. 开发与调试
 
 若需要贡献代码或更新 golden 文件，可以使用以下命令：

@@ -73,6 +73,11 @@ When running `asmfmt -h` or `asmfmt --help`, the tool prints version information
   asmfmt -e bad.s
   ```
 
+#### `-lint`
+* **Description**: Runs the built-in code style linter to check files against RISC-V and general GAS style guidelines.
+* **Output**: Writes rule violations to standard error in format `<filename>:<line>: [<ID>][<rule_name>] <message> (<severity>)`.
+* **Exit Code**: Exits with code `1` if any `"error"` level violations are found, and `2` if syntax/parsing errors occur.
+
 #### `-cpuprofile <file>`
 * **Description**: Outputs CPU profiling data to the specified file. This is an advanced flag primarily intended for developer performance tuning and debugging when formatting very large sets of files.
 
@@ -114,6 +119,15 @@ You can customize code styling rules via a TOML file. Supported keys:
 * **`indent_gas_directives`**: Boolean. Indent zero-indent GAS directives (like `.global`, `.type`, `.word`, `.byte`, `.section`) to the instruction/macro level. Default is `false`.
 
 ---
+
+### Linter Configuration (`[lint]`)
+
+Linter options can be specified under the `[lint]` section. Each rule name can be configured to either `"error"`, `"warning"`, or `"ignore"`.
+
+* **`label_naming_style`**: `"snake_case"`, `"camelCase"`, `"PascalCase"`, or `"any"` (skips check). Default is `"snake_case"`.
+* **`macro_naming_style`**: `"UPPER_SNAKE_CASE"`, `"snake_case"`, or `"any"` (skips check). Default is `"UPPER_SNAKE_CASE"`.
+
+For a complete list of rules and examples, see [Lint Rules Reference Manual](lint_rules.md).
 
 ## 4. Source Style Differences
 

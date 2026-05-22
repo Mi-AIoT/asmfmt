@@ -124,6 +124,17 @@ asmfmt -config /path/to/asmfmt.toml ./...
 
 For a fully commented configuration template, see [.asmfmt.toml.example](.asmfmt.toml.example).
 
+## Style Linter
+
+`asmfmt` includes an integrated code style linter to check assembly files against RISC-V and general GAS style rules.
+
+Run the linter with the `-lint` flag:
+```bash
+asmfmt -lint path/to/file.s
+```
+
+You can configure linter rules and severity levels in the `[lint]` section of `.asmfmt.toml`. See [Lint Rules Reference Manual](docs/lint_rules.md) for the list of rules, and the [User Manual](docs/user_manual.md) for configuration details.
+
 ## Supported syntax
 
 `asmfmt` primarily targets Go / Plan 9 assembly and also supports a conservative
