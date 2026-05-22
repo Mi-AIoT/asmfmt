@@ -78,6 +78,37 @@ func TestLinterRules(t *testing.T) {
 			expectIDs: []string{"L101"},
 		},
 		{
+			name:  "Inline disable-line specific rule",
+			style: "riscv-gas",
+			code: `// Copyright
+// SPDX-License-Identifier: Apache
+	addi x10, x11, 1   // asmfmt:disable-line L101
+	addi x10, x11, 1
+`,
+			expectIDs: []string{"L101"},
+		},
+		{
+			name:  "Inline disable-next-line specific rule",
+			style: "riscv-gas",
+			code: `// Copyright
+// SPDX-License-Identifier: Apache
+	// asmfmt:disable-next-line L101
+	addi x10, x11, 1
+	addi x10, x11, 1
+`,
+			expectIDs: []string{"L101"},
+		},
+		{
+			name:  "Inline disable-line all rules",
+			style: "riscv-gas",
+			code: `// Copyright
+// SPDX-License-Identifier: Apache
+	addi x10, x11, 1   // asmfmt:disable-line
+	addi x10, x11, 1
+`,
+			expectIDs: []string{"L101"},
+		},
+		{
 			name:      "L101 ABI registers invalid",
 			style:     "riscv-gas",
 			code:      "// Copyright\n// SPDX-License-Identifier: Apache\n\taddi x10, x11, 1\n",

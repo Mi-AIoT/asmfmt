@@ -82,6 +82,11 @@ type lintState struct {
 	custom           map[string]interface{}
 	disabledRules    map[string]bool
 	allRulesDisabled bool
+
+	disabledNextLineRules       map[string]bool
+	allRulesDisabledNextLine    bool
+	disabledCurrentLineRules    map[string]bool
+	allRulesDisabledCurrentLine bool
 }
 
 func isCommentOrBlank(s string, style sourceStyle) bool {
@@ -108,14 +113,18 @@ func newLintState(filename string, rawLines []string) *lintState {
 		custom:                       make(map[string]interface{}),
 		lastInstructionWasTerminator: true,
 		disabledRules:                make(map[string]bool),
+		disabledNextLineRules:        make(map[string]bool),
+		disabledCurrentLineRules:     make(map[string]bool),
 	}
 }
 
 func (state *lintState) isRuleDisabled(ruleID, ruleName string) bool {
-	if state.allRulesDisabled {
+	if state.allRulesDisabled || state.allRulesDisabledCurrentLine {
 		return true
 	}
-	return state.disabledRules[strings.ToUpper(ruleID)] || state.disabledRules[strings.ToLower(ruleName)]
+	rID := strings.ToUpper(ruleID)
+	rName := strings.ToLower(ruleName)
+	return state.disabledRules[rID] || state.disabledRules[rName] || state.disabledCurrentLineRules[rID] || state.disabledCurrentLineRules[rName]
 }
 
 // Helper to determine if a string is a valid register name
@@ -598,8 +607,57 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 		state.currentRawLine = l.Raw
 		lineNum := l.LineNum
 
+		// Carry forward and clear next-line disable rules
+		state.allRulesDisabledCurrentLine = state.allRulesDisabledNextLine
+		state.disabledCurrentLineRules = state.disabledNextLineRules
+
+		state.allRulesDisabledNextLine = false
+		state.disabledNextLineRules = make(map[string]bool)
+
 		// Parse inline linter control comments
-		if idx := strings.Index(l.Raw, "asmfmt:disable"); idx != -1 {
+		hasDisableLine := strings.Contains(l.Raw, "asmfmt:disable-line")
+		hasDisableNextLine := strings.Contains(l.Raw, "asmfmt:disable-next-line")
+		hasEnable := strings.Contains(l.Raw, "asmfmt:enable")
+
+		if hasDisableNextLine {
+			idx := strings.Index(l.Raw, "asmfmt:disable-next-line")
+			rest := l.Raw[idx+len("asmfmt:disable-next-line"):]
+			if endIdx := strings.Index(rest, "*/"); endIdx != -1 {
+				rest = rest[:endIdx]
+			}
+			fields := strings.Fields(rest)
+			if len(fields) == 0 {
+				state.allRulesDisabledNextLine = true
+			} else {
+				for _, f := range fields {
+					val := strings.TrimSpace(f)
+					if strings.HasPrefix(strings.ToUpper(val), "L") {
+						state.disabledNextLineRules[strings.ToUpper(val)] = true
+					} else {
+						state.disabledNextLineRules[strings.ToLower(val)] = true
+					}
+				}
+			}
+		} else if hasDisableLine {
+			idx := strings.Index(l.Raw, "asmfmt:disable-line")
+			rest := l.Raw[idx+len("asmfmt:disable-line"):]
+			if endIdx := strings.Index(rest, "*/"); endIdx != -1 {
+				rest = rest[:endIdx]
+			}
+			fields := strings.Fields(rest)
+			if len(fields) == 0 {
+				state.allRulesDisabledCurrentLine = true
+			} else {
+				for _, f := range fields {
+					val := strings.TrimSpace(f)
+					if strings.HasPrefix(strings.ToUpper(val), "L") {
+						state.disabledCurrentLineRules[strings.ToUpper(val)] = true
+					} else {
+						state.disabledCurrentLineRules[strings.ToLower(val)] = true
+					}
+				}
+			}
+		} else if idx := strings.Index(l.Raw, "asmfmt:disable"); idx != -1 {
 			rest := l.Raw[idx+len("asmfmt:disable"):]
 			if endIdx := strings.Index(rest, "*/"); endIdx != -1 {
 				rest = rest[:endIdx]
@@ -618,7 +676,9 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 				}
 			}
 		}
-		if idx := strings.Index(l.Raw, "asmfmt:enable"); idx != -1 {
+
+		if hasEnable {
+			idx := strings.Index(l.Raw, "asmfmt:enable")
 			rest := l.Raw[idx+len("asmfmt:enable"):]
 			if endIdx := strings.Index(rest, "*/"); endIdx != -1 {
 				rest = rest[:endIdx]
