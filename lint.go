@@ -52,18 +52,19 @@ type lintLine struct {
 }
 
 type lintState struct {
-	filename           string
-	rawLines           []string
-	currentRawLine     string
-	optionStack        []optionState
-	relaxationEnabled  bool
-	pushLines          []int
-	cfiStartLines      []int
-	macroStartLines    []int
-	lastNonCommentSt   *statement
-	lastNonCommentLine int
-	activeFunctions    map[string]int
-	globalSymbols      map[string]bool
+	filename            string
+	rawLines            []string
+	currentRawLine      string
+	optionStack         []optionState
+	relaxationEnabled   bool
+	pushLines           []int
+	cfiStartLines       []int
+	macroStartLines     []int
+	lastNonCommentSt    *statement
+	lastNonCommentLine  int
+	lastInstructionLine int
+	activeFunctions     map[string]int
+	globalSymbols       map[string]bool
 
 	inInstructionSequence              bool
 	lastInstructionWasTerminator       bool
@@ -708,6 +709,7 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 					state.lastInstructionWasTerminator = isTerminatorInstruction(st.instruction)
 					state.lastLineCommentContainsFallthrough = false
 					state.lastWasTerminatorInst = isTerminatorInstruction(st.instruction)
+					state.lastInstructionLine = lineNum
 				}
 				if st.isLabel() {
 					state.lastWasLabel = true
@@ -1443,9 +1445,13 @@ func (r *ruleL308) Scope() RuleScope { return ScopeGas }
 func (r *ruleL308) Check(st statement, lineNum int, state *lintState) *Problem {
 	if st.instruction == ".end_of_file" {
 		if state.inInstructionSequence && !state.lastInstructionWasTerminator && !state.lastLineCommentContainsFallthrough {
+			line := state.lastInstructionLine
+			if line == 0 {
+				line = state.lastNonCommentLine
+			}
 			return &Problem{
 				Filename: state.filename,
-				Line:     state.lastNonCommentLine,
+				Line:     line,
 				RuleID:   r.ID(),
 				RuleName: r.Name(),
 				Message:  "instruction sequence or code block must end with a terminator (like ret, j, tail, mret, unimp) or explicit 'fallthrough' comment",
@@ -1458,9 +1464,13 @@ func (r *ruleL308) Check(st statement, lineNum int, state *lintState) *Problem {
 		if !isNumeric(labelName) && !strings.HasPrefix(labelName, ".L") {
 			// Transitioning to new function/global symbol block
 			if state.inInstructionSequence && !state.lastInstructionWasTerminator && !state.lastLineCommentContainsFallthrough {
+				line := state.lastInstructionLine
+				if line == 0 {
+					line = state.lastNonCommentLine
+				}
 				return &Problem{
 					Filename: state.filename,
-					Line:     state.lastNonCommentLine,
+					Line:     line,
 					RuleID:   r.ID(),
 					RuleName: r.Name(),
 					Message:  "instruction sequence or code block must end with a terminator (like ret, j, tail, mret, unimp) or explicit 'fallthrough' comment",
@@ -1670,9 +1680,13 @@ func (r *ruleL315) Check(st statement, lineNum int, state *lintState) *Problem {
 		labelName := strings.TrimSuffix(st.instruction, ":")
 		if !isNumeric(labelName) && !strings.HasPrefix(labelName, ".L") {
 			if state.inInstructionSequence && !state.lastInstructionWasTerminator && !state.lastLineCommentContainsFallthrough {
+				line := state.lastInstructionLine
+				if line == 0 {
+					line = state.lastNonCommentLine
+				}
 				return &Problem{
 					Filename: state.filename,
-					Line:     state.lastNonCommentLine,
+					Line:     line,
 					RuleID:   r.ID(),
 					RuleName: r.Name(),
 					Message:  fmt.Sprintf("code falls through into new function label %q from previous block", labelName),
