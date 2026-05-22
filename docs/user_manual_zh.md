@@ -122,6 +122,8 @@ asmfmt [flags] [path ...]
 
 * **`label_naming_style`**：`"snake_case"`, `"camelCase"`, `"PascalCase"`, 或 `"any"`（跳过命名检查）。默认值为 `"snake_case"`。
 * **`macro_naming_style`**：`"UPPER_SNAKE_CASE"`, `"snake_case"`, 或 `"any"`（跳过命名检查）。默认值为 `"UPPER_SNAKE_CASE"`。
+* **`copyright_require_spdx`**：`true` 或 `false`。规则 `L318` (`copyright_and_license`) 是否需要 SPDX 许可证标识符。默认值为 `true`。
+* **`copyright_format`**：用于强制执行特定版权格式的正则表达式字符串。若为空，则默认匹配 "copyright" 或 "©"。默认值为 `""`。
 
 完整的规则列表和示例，请参阅 [代码风格检查规则参考手册](lint_rules_zh.md)。
 

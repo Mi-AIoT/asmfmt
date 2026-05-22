@@ -126,6 +126,8 @@ Linter options can be specified under the `[lint]` section. Each rule name can b
 
 * **`label_naming_style`**: `"snake_case"`, `"camelCase"`, `"PascalCase"`, or `"any"` (skips check). Default is `"snake_case"`.
 * **`macro_naming_style`**: `"UPPER_SNAKE_CASE"`, `"snake_case"`, or `"any"` (skips check). Default is `"UPPER_SNAKE_CASE"`.
+* **`copyright_require_spdx`**: `true` or `false`. Whether rule `L318` (`copyright_and_license`) requires an SPDX license identifier. Default is `true`.
+* **`copyright_format`**: A regular expression string to enforce a specific copyright format. If left empty, matches default "copyright" or "©". Default is `""`.
 
 For a complete list of rules and examples, see [Lint Rules Reference Manual](lint_rules.md).
 
