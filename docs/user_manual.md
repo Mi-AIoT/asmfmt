@@ -77,6 +77,9 @@ When running `asmfmt -h` or `asmfmt --help`, the tool prints version information
 #### `-version`
 * **Description**: Prints version information (version number, git commit hash, and build time) and exits.
 
+#### `-update <target>`
+* **Description**: Upgrades the `asmfmt` binary in-place to the specified version: `latest`, `beta`, or an arbitrary release tag (e.g. `v2.0.0`).
+
 ---
 
 ## 3. Configuration Options (`.asmfmt.toml`)

@@ -41,6 +41,12 @@ go install github.com/Mi-AIoT/asmfmt/cmd/asmfmt@latest
 
 或者，你也可以直接从 [GitHub Releases](https://github.com/Mi-AIoT/asmfmt/releases) 页面下载针对不同系统和架构预编译好的二进制文件。如果要体验最新 master 分支的功能，可从 [`beta` 预发布标签](https://github.com/Mi-AIoT/asmfmt/releases/tag/beta) 下载获取。
 
+你也可以使用自更新参数将工具自动升级到最新版本、beta 测试版本或特定的发布版本标签：
+
+```bash
+asmfmt -update latest
+```
+
 如果你要把这个 fork 当作 Go module 依赖，请先确认当前 `go.mod` 里的
 module path。CLI 的安装路径和库的 import path 目前可能还不一致，直到
 module path 从上游路径迁移出来为止。

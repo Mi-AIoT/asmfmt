@@ -35,6 +35,7 @@ var (
 	config      = flag.String("config", "", "read formatting options from this TOML file")
 	initCfg     = flag.Bool("init", false, "create a default .asmfmt.toml configuration file in the current directory")
 	showVersion = flag.Bool("version", false, "print version information and exit")
+	update      = flag.String("update", "", "upgrade to the specified version: 'latest', 'beta', or an arbitrary tag (e.g., 'v2.0.0')")
 
 	// debugging
 	cpuprofile = flag.String("cpuprofile", "", "write CPU profile to file (primarily for debugging and performance analysis)")
@@ -197,6 +198,15 @@ func gofmtMain() {
 		fmt.Printf("asmfmt version: %s\n", version)
 		fmt.Printf("git hash: %s\n", gitHash)
 		fmt.Printf("build time: %s\n", buildTime)
+		return
+	}
+
+	if *update != "" {
+		if err := runUpdate(*update); err != nil {
+			fmt.Fprintf(os.Stderr, "upgrade failed: %v\n", err)
+			exitCode = 2
+			return
+		}
 		return
 	}
 

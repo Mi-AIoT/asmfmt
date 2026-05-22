@@ -1,11 +1,19 @@
 package main
 
 import (
+	"archive/tar"
+	"archive/zip"
 	"bytes"
+	"compress/gzip"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -167,5 +175,172 @@ func TestCLIVersionOption(t *testing.T) {
 	}
 	if stderr != "" {
 		t.Fatalf("unexpected stderr: %q", stderr)
+	}
+}
+
+func createMockArchive(t *testing.T, dummyContent []byte) []byte {
+	var buf bytes.Buffer
+	binaryName := "asmfmt"
+	if runtime.GOOS == "windows" {
+		binaryName = "asmfmt.exe"
+	}
+
+	if runtime.GOOS == "windows" {
+		zw := zip.NewWriter(&buf)
+		f, err := zw.Create(binaryName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := f.Write(dummyContent); err != nil {
+			t.Fatal(err)
+		}
+		if err := zw.Close(); err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		gw := gzip.NewWriter(&buf)
+		tw := tar.NewWriter(gw)
+		hdr := &tar.Header{
+			Name: binaryName,
+			Mode: 0755,
+			Size: int64(len(dummyContent)),
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tw.Write(dummyContent); err != nil {
+			t.Fatal(err)
+		}
+		if err := tw.Close(); err != nil {
+			t.Fatal(err)
+		}
+		if err := gw.Close(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return buf.Bytes()
+}
+
+func copyFile(t *testing.T, src, dst string) {
+	t.Helper()
+	in, err := os.Open(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer in.Close()
+
+	out, err := os.OpenFile(dst, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer out.Close()
+
+	if _, err = io.Copy(out, in); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCLIUpgradeOption(t *testing.T) {
+	archiveBytes := createMockArchive(t, []byte("MOCK_BINARY_UPGRADE_CONTENT"))
+
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/releases/latest") {
+			w.Header().Set("Content-Type", "application/json")
+			assetName := fmt.Sprintf("asmfmt_%s_%s", runtime.GOOS, runtime.GOARCH)
+			if runtime.GOOS == "windows" {
+				assetName += ".zip"
+			} else {
+				assetName += ".tar.gz"
+			}
+			downloadURL := fmt.Sprintf("http://%s/download/%s", r.Host, assetName)
+
+			jsonStr := fmt.Sprintf(`{
+				"tag_name": "v1.5.0",
+				"assets": [
+					{
+						"name": "%s",
+						"browser_download_url": "%s"
+					}
+				]
+			}`, assetName, downloadURL)
+			w.Write([]byte(jsonStr))
+			return
+		}
+
+		if strings.Contains(r.URL.Path, "/download/") {
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Write(archiveBytes)
+			return
+		}
+
+		http.NotFound(w, r)
+	}))
+	defer ts.Close()
+
+	bin := buildCLI(t)
+	tempDir := t.TempDir()
+	tempBin := filepath.Join(tempDir, filepath.Base(bin))
+	copyFile(t, bin, tempBin)
+
+	cmd := exec.Command(tempBin, "-update", "latest")
+	cmd.Env = append(os.Environ(),
+		"ASMFMT_UPDATE_URL="+ts.URL,
+		"ASMFMT_UPGRADE_REPO=test-owner/test-repo",
+	)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err != nil {
+		t.Fatalf("update failed: %v\nstdout:\n%s\nstderr:\n%s", err, stdout.String(), stderr.String())
+	}
+
+	newContent, err := os.ReadFile(tempBin)
+	if err != nil {
+		t.Fatalf("reading updated binary: %v", err)
+	}
+
+	if string(newContent) != "MOCK_BINARY_UPGRADE_CONTENT" {
+		t.Fatalf("unexpected content after upgrade: got %q, want %q", string(newContent), "MOCK_BINARY_UPGRADE_CONTENT")
+	}
+
+	if runtime.GOOS == "windows" {
+		if _, err := os.Stat(tempBin + ".old"); err != nil {
+			t.Fatalf("expected windows old binary to exist, got error: %v", err)
+		}
+	}
+}
+
+func TestCLIUpgradeOptionInvalid(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer ts.Close()
+
+	bin := buildCLI(t)
+	tempDir := t.TempDir()
+	tempBin := filepath.Join(tempDir, filepath.Base(bin))
+	copyFile(t, bin, tempBin)
+
+	cmd := exec.Command(tempBin, "-update", "invalid")
+	cmd.Env = append(os.Environ(),
+		"ASMFMT_UPDATE_URL="+ts.URL,
+		"ASMFMT_UPGRADE_REPO=test-owner/test-repo",
+	)
+
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	err := cmd.Run()
+	if err == nil {
+		t.Fatalf("expected update to fail but it succeeded")
+	}
+
+	errStr := stderr.String()
+	if !strings.Contains(errStr, "404") && !strings.Contains(errStr, "Not Found") {
+		t.Fatalf("expected error message to contain HTTP 404 or Not Found error, got: %s", errStr)
 	}
 }

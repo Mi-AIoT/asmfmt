@@ -78,6 +78,9 @@ asmfmt [flags] [path ...]
 #### `-version`
 * **作用**：打印版本信息（包括版本号、Git Commit Hash 及构建时间）并退出。
 
+#### `-update <target>`
+* **作用**：就地在线更新/升级 `asmfmt` 自身二进制文件。可选的值为：`latest`（最新发布版）、`beta`（测试版）或指定的 Release Tag（如 `v2.0.0`）。
+
 ---
 
 ## 3. 配置文件参考 (`.asmfmt.toml`)

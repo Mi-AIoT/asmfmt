@@ -44,6 +44,12 @@ go install github.com/Mi-AIoT/asmfmt/cmd/asmfmt@latest
 
 Alternatively, you can download pre-built binaries directly from the [GitHub Releases](https://github.com/Mi-AIoT/asmfmt/releases) page. For beta/nightly features, download the latest master branch build from the [`beta` pre-release](https://github.com/Mi-AIoT/asmfmt/releases/tag/beta).
 
+You can also upgrade the tool automatically to the latest version, a beta version, or a specific release tag using the self-upgrade flag:
+
+```bash
+asmfmt -update latest
+```
+
 If you are depending on this fork as a Go module, check the current `go.mod`
 module path first. The CLI install path and the library import path may differ
 until the module path is moved from the upstream origin.
