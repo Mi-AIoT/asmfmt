@@ -58,6 +58,9 @@ For config-driven formatting changes, verify both:
 - the formatter behavior through `FormatWithOptions` or equivalent library-level tests,
 - the actual `cmd/asmfmt` executable path with temporary files/configs.
 
+For CLI-specific operations such as self-upgrade, verify:
+- both successful upgrade and failure handling (e.g., HTTP 404 response) by redirecting `ASMFMT_UPDATE_URL` to a test server.
+
 ## Development Workflow
 
 Choose the workflow based on the kind of change instead of treating all work the same.
@@ -97,6 +100,7 @@ New formatter config option:
 Docs or CI only change:
 
 - keep the diff scoped to docs or workflow files,
+- ensure both English and Chinese versions of the documentation are updated concurrently whenever changes are made,
 - avoid mixing unrelated code changes into the same commit,
 - run only the checks needed to validate the touched area unless the change affects broader behavior.
 
