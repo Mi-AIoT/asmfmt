@@ -392,6 +392,12 @@ func TestLinterRules(t *testing.T) {
 			expectIDs: []string{"L313"},
 		},
 		{
+			name:      "L313 unreachable code valid with blank lines and comments",
+			style:     "gas",
+			code:      "// Copyright\n// SPDX-License-Identifier: Apache\n\tret\n\n\t// comment line\nmy_label:\n\taddi a0, a0, 1\n",
+			expectIDs: []string{},
+		},
+		{
 			name:      "L314 single return statement invalid",
 			style:     "gas",
 			config:    "[lint]\nunreachable_code = \"ignore\"",
