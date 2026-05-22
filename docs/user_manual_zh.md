@@ -125,6 +125,21 @@ asmfmt [flags] [path ...]
 * **`copyright_require_spdx`**：`true` 或 `false`。规则 `L318` (`copyright_and_license`) 是否需要 SPDX 许可证标识符。默认值为 `true`。
 * **`copyright_format`**：用于强制执行特定版权格式的正则表达式字符串。若为空，则默认匹配 "copyright" 或 "©"。默认值为 `""`。
 
+#### 行内注释控制 (Inline Linter Control)
+
+您可以通过在汇编文件中添加行内注释，在特定区域临时关闭或重新开启特定规则或所有规则的检查：
+* **关闭特定检查**：使用 `// asmfmt:disable <规则ID或名称>...` 或 `/* asmfmt:disable <规则ID或名称>... */`。
+* **关闭所有检查**：使用 `// asmfmt:disable` 或 `/* asmfmt:disable */`。
+* **重新开启检查**：使用 `// asmfmt:enable <规则ID或名称>...` 或 `// asmfmt:enable`（重新开启所有）。
+
+示例：
+```assembly
+// asmfmt:disable L101
+	addi x10, x11, 1   # 此处跳过 L101 (abi_registers) 的检查
+// asmfmt:enable L101
+	addi x10, x11, 1   # 此处正常报告 L101 警告
+```
+
 完整的规则列表和示例，请参阅 [代码风格检查规则参考手册](lint_rules_zh.md)。
 
 ## 4. 开发与调试

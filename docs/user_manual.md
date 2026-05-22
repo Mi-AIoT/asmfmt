@@ -129,6 +129,21 @@ Linter options can be specified under the `[lint]` section. Each rule name can b
 * **`copyright_require_spdx`**: `true` or `false`. Whether rule `L318` (`copyright_and_license`) requires an SPDX license identifier. Default is `true`.
 * **`copyright_format`**: A regular expression string to enforce a specific copyright format. If left empty, matches default "copyright" or "©". Default is `""`.
 
+#### Inline Linter Control
+
+You can temporarily disable and re-enable specific rules or all checks using inline comments in your assembly files:
+* **Disable specific rules**: Use `// asmfmt:disable <RuleID_or_Name>...` or `/* asmfmt:disable <RuleID_or_Name>... */`.
+* **Disable all checks**: Use `// asmfmt:disable` or `/* asmfmt:disable */`.
+* **Re-enable rules**: Use `// asmfmt:enable <RuleID_or_Name>...` or `// asmfmt:enable` (to re-enable all).
+
+Example:
+```assembly
+// asmfmt:disable L101
+	addi x10, x11, 1   # L101 (abi_registers) check is skipped here
+// asmfmt:enable L101
+	addi x10, x11, 1   # L101 warning will be reported here
+```
+
 For a complete list of rules and examples, see [Lint Rules Reference Manual](lint_rules.md).
 
 ## 4. Source Style Differences
