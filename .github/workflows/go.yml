@@ -53,6 +53,10 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Clean non-v tags
+      run: |
+        git tag | grep -v "^v" | xargs git tag -d || true
+
     - name: Set up Go
       uses: actions/setup-go@v6
       with:
