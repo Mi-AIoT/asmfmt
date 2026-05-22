@@ -66,6 +66,18 @@ func TestLinterRules(t *testing.T) {
 			expectIDs: []string{"L101"},
 		},
 		{
+			name:  "Inline disable with leading spaces and trailing comments",
+			style: "riscv-gas",
+			code: `// Copyright
+// SPDX-License-Identifier: Apache
+	// asmfmt:disable L101
+	addi x10, x11, 1
+	// asmfmt:enable L101
+	addi x10, x11, 1
+`,
+			expectIDs: []string{"L101"},
+		},
+		{
 			name:      "L101 ABI registers invalid",
 			style:     "riscv-gas",
 			code:      "// Copyright\n// SPDX-License-Identifier: Apache\n\taddi x10, x11, 1\n",
