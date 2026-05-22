@@ -79,7 +79,9 @@ type lintState struct {
 	hasCopyright bool
 	hasSPDX      bool
 
-	custom map[string]interface{}
+	custom           map[string]interface{}
+	disabledRules    map[string]bool
+	allRulesDisabled bool
 }
 
 func isCommentOrBlank(s string, style sourceStyle) bool {
@@ -105,7 +107,15 @@ func newLintState(filename string, rawLines []string) *lintState {
 		globalSymbols:                make(map[string]bool),
 		custom:                       make(map[string]interface{}),
 		lastInstructionWasTerminator: true,
+		disabledRules:                make(map[string]bool),
 	}
+}
+
+func (state *lintState) isRuleDisabled(ruleID, ruleName string) bool {
+	if state.allRulesDisabled {
+		return true
+	}
+	return state.disabledRules[strings.ToUpper(ruleID)] || state.disabledRules[strings.ToLower(ruleName)]
 }
 
 // Helper to determine if a string is a valid register name
@@ -588,6 +598,47 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 		state.currentRawLine = l.Raw
 		lineNum := l.LineNum
 
+		// Parse inline linter control comments
+		if idx := strings.Index(l.Raw, "asmfmt:disable"); idx != -1 {
+			rest := l.Raw[idx+len("asmfmt:disable"):]
+			if endIdx := strings.Index(rest, "*/"); endIdx != -1 {
+				rest = rest[:endIdx]
+			}
+			fields := strings.Fields(rest)
+			if len(fields) == 0 {
+				state.allRulesDisabled = true
+			} else {
+				for _, f := range fields {
+					val := strings.TrimSpace(f)
+					if strings.HasPrefix(strings.ToUpper(val), "L") {
+						state.disabledRules[strings.ToUpper(val)] = true
+					} else {
+						state.disabledRules[strings.ToLower(val)] = true
+					}
+				}
+			}
+		}
+		if idx := strings.Index(l.Raw, "asmfmt:enable"); idx != -1 {
+			rest := l.Raw[idx+len("asmfmt:enable"):]
+			if endIdx := strings.Index(rest, "*/"); endIdx != -1 {
+				rest = rest[:endIdx]
+			}
+			fields := strings.Fields(rest)
+			if len(fields) == 0 {
+				state.allRulesDisabled = false
+				state.disabledRules = make(map[string]bool)
+			} else {
+				for _, f := range fields {
+					val := strings.TrimSpace(f)
+					if strings.HasPrefix(strings.ToUpper(val), "L") {
+						delete(state.disabledRules, strings.ToUpper(val))
+					} else {
+						delete(state.disabledRules, strings.ToLower(val))
+					}
+				}
+			}
+		}
+
 		// Pre-scan raw line for copyright/SPDX
 		lower := strings.ToLower(l.Raw)
 		if re, ok := state.custom["copyright_regex"].(*regexp.Regexp); ok {
@@ -622,6 +673,9 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 				if severity == "ignore" || severity == "" {
 					continue
 				}
+				if state.isRuleDisabled(r.ID(), r.Name()) {
+					continue
+				}
 				prob := r.Check(st, lineNum, state)
 				if prob != nil {
 					prob.Severity = severity
@@ -650,6 +704,9 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 				}
 				severity := nopts.lint.severities[r.Name()]
 				if severity == "ignore" || severity == "" {
+					continue
+				}
+				if state.isRuleDisabled(r.ID(), r.Name()) {
 					continue
 				}
 				prob := r.Check(*st, lineNum, state)
@@ -748,6 +805,9 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 		}
 		severity := nopts.lint.severities[r.Name()]
 		if severity == "ignore" || severity == "" {
+			continue
+		}
+		if state.isRuleDisabled(r.ID(), r.Name()) {
 			continue
 		}
 		prob := r.Check(eofSt, eofLine, state)
