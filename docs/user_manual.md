@@ -132,16 +132,21 @@ Linter options can be specified under the `[lint]` section. Each rule name can b
 #### Inline Linter Control
 
 You can temporarily disable and re-enable specific rules or all checks using inline comments in your assembly files:
-* **Disable specific rules**: Use `// asmfmt:disable <RuleID_or_Name>...` or `/* asmfmt:disable <RuleID_or_Name>... */`.
+* **Disable specific rules**: Use `// asmfmt:disable <RuleID_or_Name>...` or `/* asmfmt:disable <RuleID_or_Name>... */`. Multiple rules can be separated by spaces.
 * **Disable all checks**: Use `// asmfmt:disable` or `/* asmfmt:disable */`.
 * **Re-enable rules**: Use `// asmfmt:enable <RuleID_or_Name>...` or `// asmfmt:enable` (to re-enable all).
 
+*Note: The control comments do not need to start at the beginning of the line. They can have leading spaces, tabs, or be placed at the end of instruction lines.*
+
 Example:
 ```assembly
-// asmfmt:disable L101
-	addi x10, x11, 1   # L101 (abi_registers) check is skipped here
-// asmfmt:enable L101
-	addi x10, x11, 1   # L101 warning will be reported here
+	// Indented comment to disable multiple rules
+	// asmfmt:disable L101 L303
+	addi x10, x11, 1   # L101 is skipped
+	lw a0, (a1)        # L303 is skipped
+	// asmfmt:enable L101 L303
+
+	addi x10, x11, 1   # asmfmt:disable L101 (trailing comment)
 ```
 
 For a complete list of rules and examples, see [Lint Rules Reference Manual](lint_rules.md).
