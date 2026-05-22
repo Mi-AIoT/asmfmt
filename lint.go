@@ -1752,7 +1752,7 @@ func (r *ruleL313) ID() string       { return "L313" }
 func (r *ruleL313) Name() string     { return "unreachable_code" }
 func (r *ruleL313) Scope() RuleScope { return ScopeGas }
 func (r *ruleL313) Check(st statement, lineNum int, state *lintState) *Problem {
-	if st.instruction == ".end_of_file" {
+	if st.instruction == ".end_of_file" || st.instruction == "" {
 		return nil
 	}
 	if st.isLabel() {
