@@ -146,6 +146,7 @@ jobs:
 
             **Commit:** ${{ github.sha }}
           prerelease: true
+          generate_release_notes: true
           files: |
             dist/*.tar.gz
             dist/*.zip
