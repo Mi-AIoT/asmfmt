@@ -519,6 +519,7 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 	state.custom["macro_naming_style"] = nopts.lint.macroNamingStyle
 	state.custom["copyright_require_spdx"] = nopts.lint.copyrightRequireSpdx
 	state.custom["copyright_format"] = nopts.lint.copyrightFormat
+	state.custom["declarative_macros"] = nopts.lint.declarativeMacros
 	if nopts.lint.copyrightFormat != "" {
 		if re, err := regexp.Compile(nopts.lint.copyrightFormat); err == nil {
 			state.custom["copyright_regex"] = re
@@ -834,7 +835,7 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 				state.lastNonCommentSt = st
 				state.lastNonCommentLine = lineNum
 
-				if !st.isGasDirective() && !st.isLabel() && !st.isPreProcessor() {
+				if !st.isGasDirective() && !st.isLabel() && !st.isPreProcessor() && !state.isDeclarativeMacro(st.instruction) {
 					state.inInstructionSequence = true
 					state.lastInstructionWasTerminator = isTerminatorInstruction(st.instruction)
 					state.lastLineCommentContainsFallthrough = false
@@ -1752,7 +1753,7 @@ func (r *ruleL313) ID() string       { return "L313" }
 func (r *ruleL313) Name() string     { return "unreachable_code" }
 func (r *ruleL313) Scope() RuleScope { return ScopeGas }
 func (r *ruleL313) Check(st statement, lineNum int, state *lintState) *Problem {
-	if st.instruction == ".end_of_file" || st.instruction == "" {
+	if st.instruction == ".end_of_file" || st.instruction == "" || state.isDeclarativeMacro(st.instruction) {
 		return nil
 	}
 	if st.isLabel() {
@@ -2048,4 +2049,11 @@ func (r *ruleL322) Check(st statement, lineNum int, state *lintState) *Problem {
 		}
 	}
 	return nil
+}
+
+func (state *lintState) isDeclarativeMacro(inst string) bool {
+	if dms, ok := state.custom["declarative_macros"].(map[string]bool); ok {
+		return dms[strings.ToUpper(inst)]
+	}
+	return false
 }

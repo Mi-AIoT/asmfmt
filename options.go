@@ -69,10 +69,11 @@ type LintOptions struct {
 	LineLengthLimit                string `toml:"line_length_limit"`
 
 	// Casing style parameters
-	LabelNamingStyle     string `toml:"label_naming_style"`
-	MacroNamingStyle     string `toml:"macro_naming_style"`
-	CopyrightRequireSpdx bool   `toml:"copyright_require_spdx"`
-	CopyrightFormat      string `toml:"copyright_format"`
+	LabelNamingStyle     string   `toml:"label_naming_style"`
+	MacroNamingStyle     string   `toml:"macro_naming_style"`
+	CopyrightRequireSpdx bool     `toml:"copyright_require_spdx"`
+	CopyrightFormat      string   `toml:"copyright_format"`
+	DeclarativeMacros    []string `toml:"declarative_macros"`
 }
 
 type normalizedOptions struct {
@@ -100,6 +101,7 @@ type normalizedLintOptions struct {
 	macroNamingStyle     string
 	copyrightRequireSpdx bool
 	copyrightFormat      string
+	declarativeMacros    map[string]bool
 }
 
 // DefaultLintOptions returns the default configurations for the linter.
@@ -145,6 +147,7 @@ func DefaultLintOptions() LintOptions {
 		MacroNamingStyle:               "UPPER_SNAKE_CASE",
 		CopyrightRequireSpdx:           true,
 		CopyrightFormat:                "",
+		DeclarativeMacros:              []string{},
 	}
 }
 
@@ -342,6 +345,11 @@ func (o Options) normalize() (normalizedOptions, error) {
 		if _, err := regexp.Compile(o.Lint.CopyrightFormat); err != nil {
 			return normalizedOptions{}, fmt.Errorf("invalid copyright_format regex: %w", err)
 		}
+	}
+
+	n.lint.declarativeMacros = make(map[string]bool)
+	for _, dm := range o.Lint.DeclarativeMacros {
+		n.lint.declarativeMacros[strings.ToUpper(dm)] = true
 	}
 
 	return n, nil

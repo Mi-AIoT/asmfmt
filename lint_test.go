@@ -109,6 +109,21 @@ func TestLinterRules(t *testing.T) {
 			expectIDs: []string{"L101"},
 		},
 		{
+			name:  "Declarative macros do not start instruction sequences",
+			style: "gas",
+			config: `[lint]
+declarative_macros = ["MY_SECTION_BEGIN", "MY_GLOBAL_FUNC", "MY_SECTION_END"]`,
+			code: `// Copyright
+// SPDX-License-Identifier: Apache
+	MY_SECTION_BEGIN
+	MY_GLOBAL_FUNC my_func
+my_func:
+	ret
+	MY_SECTION_END
+`,
+			expectIDs: []string{},
+		},
+		{
 			name:      "L101 ABI registers invalid",
 			style:     "riscv-gas",
 			code:      "// Copyright\n// SPDX-License-Identifier: Apache\n\taddi x10, x11, 1\n",

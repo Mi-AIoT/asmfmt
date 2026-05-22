@@ -124,6 +124,7 @@ asmfmt [flags] [path ...]
 * **`macro_naming_style`**：`"UPPER_SNAKE_CASE"`, `"snake_case"`, 或 `"any"`（跳过命名检查）。默认值为 `"UPPER_SNAKE_CASE"`。
 * **`copyright_require_spdx`**：`true` 或 `false`。规则 `L318` (`copyright_and_license`) 是否需要 SPDX 许可证标识符。默认值为 `true`。
 * **`copyright_format`**：用于强制执行特定版权格式的正则表达式字符串。若为空，则默认匹配 "copyright" 或 "©"。默认值为 `""`。
+* **`declarative_macros`**：一个字符列表，指定自定义的声明性宏。当遇到这些宏时，检查器会其视作汇编伪指令（而非代码指令），以确保它们不会开启新的指令序列或触发不可达代码错误。默认值为 `[]`。
 
 #### 行内注释控制 (Inline Linter Control)
 

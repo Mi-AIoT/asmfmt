@@ -184,3 +184,7 @@ source_style = "auto"
 # If empty, matches default "copyright" or "©".
 # Default: ""
 #copyright_format = ""
+
+# declarative_macros: list of custom declarative macros to be treated as assembler directives (so they do not start instruction sequences or trigger unreachable code checks)
+# Default: []
+#declarative_macros = ["MY_GLOBAL_FUNC", "MY_SECTION_BEGIN", "MY_SECTION_END"]

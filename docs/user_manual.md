@@ -128,6 +128,7 @@ Linter options can be specified under the `[lint]` section. Each rule name can b
 * **`macro_naming_style`**: `"UPPER_SNAKE_CASE"`, `"snake_case"`, or `"any"` (skips check). Default is `"UPPER_SNAKE_CASE"`.
 * **`copyright_require_spdx`**: `true` or `false`. Whether rule `L318` (`copyright_and_license`) requires an SPDX license identifier. Default is `true`.
 * **`copyright_format`**: A regular expression string to enforce a specific copyright format. If left empty, matches default "copyright" or "©". Default is `""`.
+* **`declarative_macros`**: A list of strings specifying custom declarative macros. When encountered, the linter treats them as assembler directives instead of code instructions, ensuring they do not start instruction sequences or trigger unreachable code errors. Default is `[]`.
 
 #### Inline Linter Control
 
