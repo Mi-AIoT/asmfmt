@@ -1,5 +1,9 @@
 # Release Notes: v2.1.0
 
+> **NOTE:** This is a version in development and has not been formally released yet.  
+> **注意：** 本版本处于开发阶段，尚未正式发布。
+
+
 This release introduces a new self-upgrade feature (`-update` flag) with custom update server configurations, and improves CI/CD linting capability by returning a non-zero exit code when formatting differences are detected.
 
 ---
