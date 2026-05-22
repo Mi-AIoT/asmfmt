@@ -50,6 +50,8 @@ You can also upgrade the tool automatically to the latest version, a beta versio
 asmfmt -update latest
 ```
 
+To override the repository or the update endpoint (e.g. for testing or local mirrors), use the `ASMFMT_UPGRADE_REPO` and `ASMFMT_UPDATE_URL` environment variables.
+
 If you are depending on this fork as a Go module, check the current `go.mod`
 module path first. The CLI install path and the library import path may differ
 until the module path is moved from the upstream origin.

@@ -80,6 +80,9 @@ asmfmt [flags] [path ...]
 
 #### `-update <target>`
 * **作用**：就地在线更新/升级 `asmfmt` 自身二进制文件。可选的值为：`latest`（最新发布版）、`beta`（测试版）或指定的 Release Tag（如 `v2.0.0`）。
+* **支持的环境变量**：
+  * `ASMFMT_UPGRADE_REPO`：覆盖默认的仓库源（默认为 `Mi-AIoT/asmfmt`）。
+  * `ASMFMT_UPDATE_URL`：覆盖默认的 GitHub API 基础 URL（默认为 `https://api.github.com`），常用于集成测试或指向自定义镜像源。
 
 ---
 

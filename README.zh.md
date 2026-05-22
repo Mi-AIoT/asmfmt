@@ -47,6 +47,8 @@ go install github.com/Mi-AIoT/asmfmt/cmd/asmfmt@latest
 asmfmt -update latest
 ```
 
+如果需要覆盖默认的仓库源或更新服务器（例如用于本地测试或镜像源），可以使用 `ASMFMT_UPGRADE_REPO` 和 `ASMFMT_UPDATE_URL` 环境变量。
+
 如果你要把这个 fork 当作 Go module 依赖，请先确认当前 `go.mod` 里的
 module path。CLI 的安装路径和库的 import path 目前可能还不一致，直到
 module path 从上游路径迁移出来为止。

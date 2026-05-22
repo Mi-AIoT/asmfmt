@@ -79,6 +79,9 @@ When running `asmfmt -h` or `asmfmt --help`, the tool prints version information
 
 #### `-update <target>`
 * **Description**: Upgrades the `asmfmt` binary in-place to the specified version: `latest`, `beta`, or an arbitrary release tag (e.g. `v2.0.0`).
+* **Environment Variables**:
+  * `ASMFMT_UPGRADE_REPO`: Overrides the default repository owner and name (defaults to `Mi-AIoT/asmfmt`).
+  * `ASMFMT_UPDATE_URL`: Overrides the default GitHub API base URL (defaults to `https://api.github.com`), useful for testing or using custom mirrors.
 
 ---
 
