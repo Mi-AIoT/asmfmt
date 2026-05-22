@@ -346,9 +346,15 @@
   ```
 * **合规示例**:
   ```assembly
+  # 使用终结指令合规
   my_func:
       addi a0, a0, 1
       ret
+
+  # 使用显式 fallthrough 注释合规
+  my_func:
+      addi a0, a0, 1
+      // fall through
   ```
 
 ### L309: `function_doxygen_comment`
@@ -472,9 +478,17 @@
   ```
 * **合规示例**:
   ```assembly
+  # 使用终结指令合规
   func1:
       addi a0, a0, 1
       ret
+  func2:
+      ret
+
+  # 使用显式 fallthrough 注释合规
+  func1:
+      addi a0, a0, 1
+      // fall through
   func2:
       ret
   ```

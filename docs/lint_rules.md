@@ -346,9 +346,15 @@ This document details all style linter rules available in `asmfmt`. These rules 
   ```
 * **Compliant**:
   ```assembly
+  # Compliant using terminator
   my_func:
       addi a0, a0, 1
       ret
+
+  # Compliant using explicit fallthrough comment
+  my_func:
+      addi a0, a0, 1
+      // fall through
   ```
 
 ### L309: `function_doxygen_comment`
@@ -472,9 +478,17 @@ This document details all style linter rules available in `asmfmt`. These rules 
   ```
 * **Compliant**:
   ```assembly
+  # Compliant using terminator
   func1:
       addi a0, a0, 1
       ret
+  func2:
+      ret
+
+  # Compliant using explicit fallthrough comment
+  func1:
+      addi a0, a0, 1
+      // fall through
   func2:
       ret
   ```
