@@ -498,6 +498,13 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 	state.relaxationEnabled = true
 	state.custom["label_naming_style"] = nopts.lint.labelNamingStyle
 	state.custom["macro_naming_style"] = nopts.lint.macroNamingStyle
+	state.custom["copyright_require_spdx"] = nopts.lint.copyrightRequireSpdx
+	state.custom["copyright_format"] = nopts.lint.copyrightFormat
+	if nopts.lint.copyrightFormat != "" {
+		if re, err := regexp.Compile(nopts.lint.copyrightFormat); err == nil {
+			state.custom["copyright_regex"] = re
+		}
+	}
 
 	// Build global symbol and local function map
 	// First pass: locate all labels and symbols
@@ -583,8 +590,14 @@ func Lint(filename string, in io.Reader, opts Options) ([]Problem, error) {
 
 		// Pre-scan raw line for copyright/SPDX
 		lower := strings.ToLower(l.Raw)
-		if strings.Contains(lower, "copyright") || strings.Contains(l.Raw, "©") {
-			state.hasCopyright = true
+		if re, ok := state.custom["copyright_regex"].(*regexp.Regexp); ok {
+			if re.MatchString(l.Raw) {
+				state.hasCopyright = true
+			}
+		} else {
+			if strings.Contains(lower, "copyright") || strings.Contains(l.Raw, "©") {
+				state.hasCopyright = true
+			}
 		}
 		if strings.Contains(l.Raw, "SPDX-License-Identifier") {
 			state.hasSPDX = true
@@ -1766,13 +1779,21 @@ func (r *ruleL318) Name() string     { return "copyright_and_license" }
 func (r *ruleL318) Scope() RuleScope { return ScopeAll }
 func (r *ruleL318) Check(st statement, lineNum int, state *lintState) *Problem {
 	if st.instruction == ".end_of_file" {
-		if !state.hasCopyright || !state.hasSPDX {
+		requireSpdx := true
+		if val, ok := state.custom["copyright_require_spdx"].(bool); ok {
+			requireSpdx = val
+		}
+		if !state.hasCopyright || (requireSpdx && !state.hasSPDX) {
+			msg := "file must start with a copyright notice"
+			if requireSpdx {
+				msg = "file must start with a copyright notice and an SPDX license identifier"
+			}
 			return &Problem{
 				Filename: state.filename,
 				Line:     1,
 				RuleID:   r.ID(),
 				RuleName: r.Name(),
-				Message:  "file must start with a copyright notice and an SPDX license identifier",
+				Message:  msg,
 			}
 		}
 	}

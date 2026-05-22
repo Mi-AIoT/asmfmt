@@ -3,6 +3,7 @@ package asmfmt
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -68,8 +69,10 @@ type LintOptions struct {
 	LineLengthLimit                string `toml:"line_length_limit"`
 
 	// Casing style parameters
-	LabelNamingStyle string `toml:"label_naming_style"`
-	MacroNamingStyle string `toml:"macro_naming_style"`
+	LabelNamingStyle     string `toml:"label_naming_style"`
+	MacroNamingStyle     string `toml:"macro_naming_style"`
+	CopyrightRequireSpdx bool   `toml:"copyright_require_spdx"`
+	CopyrightFormat      string `toml:"copyright_format"`
 }
 
 type normalizedOptions struct {
@@ -92,9 +95,11 @@ type normalizedOptions struct {
 }
 
 type normalizedLintOptions struct {
-	severities       map[string]string
-	labelNamingStyle string
-	macroNamingStyle string
+	severities           map[string]string
+	labelNamingStyle     string
+	macroNamingStyle     string
+	copyrightRequireSpdx bool
+	copyrightFormat      string
 }
 
 // DefaultLintOptions returns the default configurations for the linter.
@@ -138,6 +143,8 @@ func DefaultLintOptions() LintOptions {
 		LineLengthLimit:                "warning",
 		LabelNamingStyle:               "snake_case",
 		MacroNamingStyle:               "UPPER_SNAKE_CASE",
+		CopyrightRequireSpdx:           true,
+		CopyrightFormat:                "",
 	}
 }
 
@@ -327,6 +334,14 @@ func (o Options) normalize() (normalizedOptions, error) {
 	}
 	if o.Lint.MacroNamingStyle != "any" {
 		n.lint.severities["macro_naming_style"] = "warning"
+	}
+
+	n.lint.copyrightRequireSpdx = o.Lint.CopyrightRequireSpdx
+	n.lint.copyrightFormat = o.Lint.CopyrightFormat
+	if o.Lint.CopyrightFormat != "" {
+		if _, err := regexp.Compile(o.Lint.CopyrightFormat); err != nil {
+			return normalizedOptions{}, fmt.Errorf("invalid copyright_format regex: %w", err)
+		}
 	}
 
 	return n, nil

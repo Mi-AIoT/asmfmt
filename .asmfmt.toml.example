@@ -174,3 +174,13 @@ source_style = "auto"
 # Supported values: "UPPER_SNAKE_CASE", "snake_case", "any".
 # Default: "UPPER_SNAKE_CASE"
 #macro_naming_style = "UPPER_SNAKE_CASE"
+
+# copyright_require_spdx: whether rule L318 (copyright_and_license) requires SPDX license identifier
+# Supported values: true, false.
+# Default: true
+#copyright_require_spdx = true
+
+# copyright_format: custom regex pattern to validate copyright notice (L318)
+# If empty, matches default "copyright" or "©".
+# Default: ""
+#copyright_format = ""
