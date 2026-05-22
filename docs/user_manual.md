@@ -132,21 +132,29 @@ Linter options can be specified under the `[lint]` section. Each rule name can b
 #### Inline Linter Control
 
 You can temporarily disable and re-enable specific rules or all checks using inline comments in your assembly files:
-* **Disable specific rules**: Use `// asmfmt:disable <RuleID_or_Name>...` or `/* asmfmt:disable <RuleID_or_Name>... */`. Multiple rules can be separated by spaces.
-* **Disable all checks**: Use `// asmfmt:disable` or `/* asmfmt:disable */`.
-* **Re-enable rules**: Use `// asmfmt:enable <RuleID_or_Name>...` or `// asmfmt:enable` (to re-enable all).
+* **Disable specific rules persistently**: Use `// asmfmt:disable <RuleID_or_Name>...` or `/* asmfmt:disable <RuleID_or_Name>... */`. Multiple rules can be separated by spaces.
+* **Disable all checks persistently**: Use `// asmfmt:disable` or `/* asmfmt:disable */`.
+* **Re-enable rules persistently**: Use `// asmfmt:enable <RuleID_or_Name>...` or `// asmfmt:enable` (to re-enable all).
+* **Disable rules for the current line only**: Use `// asmfmt:disable-line [RuleID_or_Name]...` (e.g. at the end of the line). If no rule is specified, disables all checks on this line.
+* **Disable rules for the next line only**: Use `// asmfmt:disable-next-line [RuleID_or_Name]...` on the line preceding the target line. If no rule is specified, disables all checks on the next line.
 
 *Note: The control comments do not need to start at the beginning of the line. They can have leading spaces, tabs, or be placed at the end of instruction lines.*
 
 Example:
 ```assembly
-	// Indented comment to disable multiple rules
+	// Disable multiple rules persistently
 	// asmfmt:disable L101 L303
 	addi x10, x11, 1   # L101 is skipped
 	lw a0, (a1)        # L303 is skipped
 	// asmfmt:enable L101 L303
 
-	addi x10, x11, 1   # asmfmt:disable L101 (trailing comment)
+	// Disable for the current line only using trailing comment
+	addi x10, x11, 1   # asmfmt:disable-line L101
+
+	// Disable for the next line only
+	// asmfmt:disable-next-line L101
+	addi x10, x11, 1   # L101 is skipped here
+	addi x10, x11, 1   # L101 warning will be reported here
 ```
 
 For a complete list of rules and examples, see [Lint Rules Reference Manual](lint_rules.md).

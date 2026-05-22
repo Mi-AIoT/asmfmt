@@ -128,21 +128,29 @@ asmfmt [flags] [path ...]
 #### 行内注释控制 (Inline Linter Control)
 
 您可以通过在汇编文件中添加行内注释，在特定区域临时关闭或重新开启特定规则或所有规则的检查：
-* **关闭特定检查**：使用 `// asmfmt:disable <规则ID或名称>...` 或 `/* asmfmt:disable <规则ID或名称>... */`。支持通过空格分隔同时指定多个规则。
-* **关闭所有检查**：使用 `// asmfmt:disable` 或 `/* asmfmt:disable */`。
-* **重新开启检查**：使用 `// asmfmt:enable <规则ID或名称>...` 或 `// asmfmt:enable`（重新开启所有）。
+* **持久关闭特定检查**：使用 `// asmfmt:disable <规则ID或名称>...` 或 `/* asmfmt:disable <规则ID或名称>... */`。支持通过空格分隔同时指定多个规则。
+* **持久关闭所有检查**：使用 `// asmfmt:disable` 或 `/* asmfmt:disable */`。
+* **持久重新开启检查**：使用 `// asmfmt:enable <规则ID或名称>...` 或 `// asmfmt:enable`（重新开启所有）。
+* **仅关闭当前行检查**：在当前行末尾或行内使用 `// asmfmt:disable-line [规则ID或名称]...`。若不指定规则，则默认关闭当前行的所有检查。
+* **仅关闭下一行检查**：在目标行的上一行使用 `// asmfmt:disable-next-line [规则ID或名称]...`。若不指定规则，则默认关闭下一行的所有检查。
 
 *注意：控制注释不需要顶头放置，可以包含前置空格或缩进，也允许直接写在指令行的末尾作为后缀注释。*
 
 示例：
 ```assembly
-	// 带有缩进的注释，同时关闭多个规则
+	// 带有缩进的注释，持久关闭多个规则
 	// asmfmt:disable L101 L303
 	addi x10, x11, 1   # 跳过 L101 检查
 	lw a0, (a1)        # 跳过 L303 检查
 	// asmfmt:enable L101 L303
 
-	addi x10, x11, 1   # asmfmt:disable L101 (写在指令行末尾)
+	// 仅通过行尾注释关闭当前行检查
+	addi x10, x11, 1   # asmfmt:disable-line L101
+
+	// 仅关闭下一行检查
+	// asmfmt:disable-next-line L101
+	addi x10, x11, 1   # 此处跳过 L101 检查
+	addi x10, x11, 1   # 此处正常报告 L101 警告
 ```
 
 完整的规则列表和示例，请参阅 [代码风格检查规则参考手册](lint_rules_zh.md)。
