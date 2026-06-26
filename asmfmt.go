@@ -1074,6 +1074,7 @@ func (st statement) isGasZeroDirective() bool {
 	switch st.instruction {
 	case ".text", ".data", ".rodata", ".bss", ".section", ".pushsection", ".popsection",
 		".previous", ".subsection", ".globl", ".global", ".local", ".weak", ".comm",
+		".extern",
 		".common", ".file", ".ident", ".size", ".type", ".attribute", ".option",
 		".altmacro", ".noaltmacro",
 		".align", ".p2align", ".balign", ".equ", ".set", ".byte", ".2byte", ".half",

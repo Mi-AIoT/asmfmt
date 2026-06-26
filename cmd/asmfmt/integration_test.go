@@ -57,6 +57,29 @@ func TestCLIConfigProjectDiscovery(t *testing.T) {
 	}
 }
 
+func TestCLIConfigProjectDiscoveryIndentExternDirective(t *testing.T) {
+	root := t.TempDir()
+	project := filepath.Join(root, "project")
+	nested := filepath.Join(project, "nested")
+	src := filepath.Join(nested, "start.S")
+	cfg := filepath.Join(project, ".asmfmt.toml")
+	writeFile(t, cfg, "indent_gas_directives = true\n")
+	writeFile(t, src, ".section .text\n.global _start\n.type _start, %function\n.extern utils_uart_init\n.extern utils_print_str\n_start:\n\tcall utils_uart_init\n")
+
+	env := withHomeEnv(filepath.Join(root, "home"))
+	stdout, stderr, err := runCLI(t, nested, env, nil, src)
+	if err != nil {
+		t.Fatalf("runCLI: %v\nstderr:\n%s", err, stderr)
+	}
+	want := "\t.section .text\n\t.global _start\n\t.type _start, %function\n\t.extern utils_uart_init\n\t.extern utils_print_str\n_start:\n\tcall utils_uart_init\n"
+	if stdout != want {
+		t.Fatalf("project config extern indentation output = %q; want %q", stdout, want)
+	}
+	if stderr != "" {
+		t.Fatalf("unexpected stderr: %q", stderr)
+	}
+}
+
 func TestCLIConfigStdinUsesUserConfigOnly(t *testing.T) {
 	root := t.TempDir()
 	project := filepath.Join(root, "project")
