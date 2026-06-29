@@ -15,6 +15,7 @@
   - Commit history since latest release tag in `hash: message` format
   - Latest development release notes from docs/ directory
   Provides full visibility into all changes in development. (commit 97c4531)
+* **Beta Release Timestamp Fix**: Fixed beta release timestamp not updating by deleting existing release before creating a new one. This ensures GitHub displays the correct updated timestamp instead of the original creation time. (commit 5225c28)
 * **Release Process Documentation**: Added comprehensive release process guidelines to AGENTS.md covering:
   - Release note location, naming conventions, and bilingual format
   - Development vs released status tracking
@@ -37,6 +38,7 @@
   - 自最新 release tag 以来的 commit 历史，格式为 `hash: message`
   - docs/ 目录中的最新开发中 release notes
   提供开发中所有更改的完整可见性。(commit 97c4531)
+* **Beta Release 发布时间修复**: 修复 beta release 发布时间不更新的问题。通过在创建新 release 前先删除现有的 beta release，确保 GitHub 显示正确的更新时间而非原始创建时间。(commit 5225c28)
 * **Release 流程文档**: 在 AGENTS.md 中添加了全面的 release 流程指南，涵盖：
   - Release note 位置、命名约定和双语格式
   - 开发中 vs 已发布状态跟踪
