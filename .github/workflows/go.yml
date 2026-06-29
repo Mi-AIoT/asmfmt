@@ -119,6 +119,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    concurrency:
+      group: beta-release
+      cancel-in-progress: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

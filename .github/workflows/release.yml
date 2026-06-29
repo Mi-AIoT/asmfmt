@@ -9,7 +9,31 @@ permissions:
   contents: write
 
 jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate tag format
+        run: |
+          TAG="${{ github.ref_name }}"
+          # Validate semantic version format (vX.Y.Z)
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Tag '$TAG' does not match semantic version format vX.Y.Z"
+            echo "Valid formats: v1.0.0, v2.1.0, v10.20.30"
+            exit 1
+          fi
+          # Extract version components
+          VERSION="${TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          echo "Version: $TAG (Major: $MAJOR, Minor: $MINOR, Patch: $PATCH)"
+          # Validate version components are non-negative integers
+          if [[ $MAJOR -lt 0 || $MINOR -lt 0 || $PATCH -lt 0 ]]; then
+            echo "ERROR: Version components must be non-negative integers"
+            exit 1
+          fi
+          echo "✓ Tag validation passed"
+
   verify:
+    needs: [validate-tag]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
