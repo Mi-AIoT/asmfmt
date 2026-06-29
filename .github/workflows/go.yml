@@ -141,6 +141,19 @@ jobs:
           git tag -f beta
           git push -f origin beta
 
+      - name: Delete existing beta release
+        run: |
+          # Delete existing beta release to allow re-creation with updated timestamp
+          RELEASE_ID=$(gh release view beta --json id -q '.id' 2>/dev/null || true)
+          if [ -n "$RELEASE_ID" ]; then
+            echo "Deleting existing beta release (ID: $RELEASE_ID)..."
+            gh release delete beta --yes || echo "Failed to delete release, will attempt to update instead"
+          else
+            echo "No existing beta release found, will create new one"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Fetch development release notes
         id: release-notes
         run: |
