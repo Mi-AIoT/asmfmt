@@ -128,3 +128,44 @@ Before committing:
 - run the relevant focused tests plus `go test ./...` and `go vet ./...` when the change is substantial.
 
 Pull requests should include a brief problem statement, the formatter behavior change, updated tests or fixtures, and the commands run locally. Include before/after examples when a formatting rule changes.
+
+## Release Process
+
+### Release Notes
+
+- **Location**: All release notes are maintained in `docs/` directory
+- **Naming**: `docs/release_notes_v{VERSION}.md` (e.g., `docs/release_notes_v2.1.0.md`)
+- **Format**: Markdown with bilingual support (English and Chinese)
+- **Structure**: 
+  - Header with release date and development status notice
+  - English version section with feature documentation
+  - Chinese version section with equivalent documentation
+  - Each feature/fix should reference relevant commit hashes
+
+### Development vs Released Status
+
+**During development (vX.Y.Z-in-development)**:
+- Include notice at top: `> **NOTE:** This is a version in development and has not been formally released yet.`
+- Add both English and Chinese: `> **注意：** 本版本处于开发阶段，尚未正式发布。`
+- Document features as they are developed
+- Continue updating until ready for release
+
+**When releasing (vX.Y.Z)**:
+- Replace notice with release date: `> **Release Date:** YYYY-MM-DD` / `> **发布日期：** YYYY-MM-DD`
+- Ensure all features and fixes are documented
+- Commit the release note update
+- Create annotated tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z: Brief description"`
+
+### Bilingual Documentation Requirements
+
+- Always maintain both English and Chinese versions in release notes
+- Keep documentation synchronized - if adding to English section, update Chinese section
+- Both sections should cover the same features with equivalent detail
+- Reference commit hashes in both language sections
+
+### Post-Release
+
+- Push commits and tags to remote: `git push origin vX.Y.Z` and `git push origin master`
+- Maintain next development version release note (e.g., `docs/release_notes_vX.Y.Z.md`) marked as in-development
+- Document new features and fixes as they are developed in the current version
+
