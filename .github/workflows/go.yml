@@ -141,6 +141,52 @@ jobs:
           git tag -f beta
           git push -f origin beta
 
+      - name: Fetch development release notes
+        id: release-notes
+        run: |
+          # Find the latest development release note (highest version)
+          LATEST_NOTE=$(ls -v docs/release_notes_v*.md 2>/dev/null | tail -1)
+          if [ -n "$LATEST_NOTE" ]; then
+            echo "Found release notes: $LATEST_NOTE"
+            # Read the content but skip the first 7 lines (title + notice + blank lines)
+            NOTES_CONTENT=$(tail -n +8 "$LATEST_NOTE")
+            # Escape for multiline output
+            {
+              echo "notes<<EOF"
+              echo "$NOTES_CONTENT"
+              echo "EOF"
+            } >> $GITHUB_OUTPUT
+          else
+            echo "No release notes found"
+            echo "notes=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch commit history since latest release
+        id: commits
+        run: |
+          # Find the latest release tag (highest semver)
+          LATEST_TAG=$(git tag -l 'v*' --sort=-v:refname | head -1)
+          if [ -n "$LATEST_TAG" ]; then
+            echo "Latest release tag: $LATEST_TAG"
+            # Get commits since that tag, formatted as hash: message
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %h: %s" --no-merges)
+            if [ -n "$COMMITS" ]; then
+              {
+                echo "changelog<<EOF"
+                echo "**Changes since ${LATEST_TAG}:**"
+                echo ""
+                echo "$COMMITS"
+                echo "EOF"
+              } >> $GITHUB_OUTPUT
+            else
+              echo "No new commits since ${LATEST_TAG}"
+              echo "changelog=" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No release tags found"
+            echo "changelog=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Release Beta
         uses: softprops/action-gh-release@v2
         with:
@@ -152,6 +198,14 @@ jobs:
             It is automatically built and updated on every successful commit to `master`.
 
             **Commit:** ${{ github.sha }}
+
+            ---
+
+            ${{ steps.commits.outputs.changelog }}
+
+            ---
+
+            ${{ steps.release-notes.outputs.notes }}
           prerelease: true
           generate_release_notes: true
           files: |
