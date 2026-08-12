@@ -659,23 +659,10 @@ func (f *fstate) emitBufferedBlockComment() {
 	f.blockBuffered = false
 	f.insideBlock = false
 
-	canonical := true
-	if len(lines) < 2 {
-		canonical = false
-	}
-	for i, line := range lines[1:] {
+	canonical := len(lines) >= 2 && strings.TrimSpace(lines[0]) == "/*"
+	for _, line := range lines[1:] {
 		trimmed := strings.TrimSpace(line)
 		if strings.Contains(trimmed, `\`) {
-			canonical = false
-			break
-		}
-		if i == len(lines)-2 {
-			continue
-		}
-		if trimmed == "" {
-			continue
-		}
-		if strings.HasPrefix(trimmed, "*") {
 			canonical = false
 			break
 		}
@@ -691,17 +678,14 @@ func (f *fstate) emitBufferedBlockComment() {
 		return
 	}
 
-	f.writeIndentLevel(f.blockIndentation)
 	f.out.WriteString("/*\n")
 	for _, line := range lines[1:] {
 		trimmed := strings.TrimSpace(line)
 		if strings.Contains(trimmed, "*/") {
-			f.writeIndentLevel(f.blockIndentation)
 			f.out.WriteString(" */\n")
 			break
 		}
 		body := strings.TrimSpace(trimBlockCommentLeader(trimmed))
-		f.writeIndentLevel(f.blockIndentation)
 		if body == "" {
 			f.out.WriteString(" *\n")
 		} else {

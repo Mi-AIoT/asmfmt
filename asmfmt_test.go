@@ -381,6 +381,41 @@ func TestUnknownDirectivePreservesText(t *testing.T) {
 	}
 }
 
+func TestIndentedStandaloneBlockCommentIsZeroIndentedInOnePass(t *testing.T) {
+	input := `    /*
+        * parameters:
+     * a0: first value
+     */
+func_label:
+    ret
+`
+	opts := DefaultOptions()
+	opts.IndentStyle = "space"
+	opts.IndentWidth = 4
+	opts.SourceStyle = "riscv-gas"
+	got, err := FormatWithOptions(strings.NewReader(input), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `/*
+ * parameters:
+ * a0: first value
+ */
+func_label:
+    ret
+`
+	if string(got) != want {
+		t.Fatalf("first format = %q, want %q", got, want)
+	}
+	again, err := FormatWithOptions(strings.NewReader(string(got)), opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(again) != string(got) {
+		t.Fatalf("second format changed output:\n%s", again)
+	}
+}
+
 func TestSourceStyleDetection(t *testing.T) {
 	tests := []struct {
 		line string
